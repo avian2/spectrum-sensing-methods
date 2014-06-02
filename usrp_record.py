@@ -5,6 +5,7 @@ from multiprocessing import Process, Queue
 import os
 import tempfile
 import numpy
+import scipy.linalg
 
 class MeasurementProcess(Process):
 	def __init__(self, inp):
@@ -22,7 +23,7 @@ class MeasurementProcess(Process):
 		if Pgen is None:
 			self.gen.write("outp off\n")
 		else:
-			self.gen.write("pow %d dBm\n" % (Pgen,))
+			self.gen.write("pow %.1f dBm\n" % (Pgen,))
 			self.gen.write("outp on\n")
 
 		handle, path = tempfile.mkstemp()
@@ -87,11 +88,39 @@ class GammaProcess(Process):
 			self.out.put(kwargs)
 
 class EnergyDetector:
+	SLUG = 'ed'
+
 	def __init__(self):
 		pass
 
 	def __call__(self, x):
 		return numpy.sum(x**2)
+
+class CAVDetector:
+	SLUG = 'cav'
+
+	def __init__(self, L=10):
+		self.L = L
+
+	def __call__(self, x):
+		L = self.L
+		Ns = len(x)
+
+		lbd = numpy.empty(L)
+		for l in xrange(L):
+			if l > 0:
+				xu = x[:-l]
+			else:
+				xu = x
+
+			lbd[l] = numpy.dot(xu, x[l:])/(Ns-l)
+
+		R = scipy.linalg.toeplitz(lbd)
+
+		T1 = numpy.sum(numpy.abs(R))/L
+		T2 = numpy.abs(lbd[0])
+
+		return T1/T2
 
 def main():
 	fc = 864e6
@@ -105,27 +134,33 @@ def main():
 	mp = MeasurementProcess(inp)
 	mp.start()
 
-	gp = GammaProcess(mp.out, Ns, EnergyDetector())
+	#det = EnergyDetector()
+	det = CAVDetector()
+
+	gp = GammaProcess(mp.out, Ns, det)
 	gp.start()
 
-	Pgenl = [None] + range(-100, -10, 1)
+	Pgenl = [None] + range(-1100, -750, 10)
 
 	for Pgen in Pgenl:
 		inp.put({'N': Ns*Np,
 			'fc': fc,
 			'fs': fs,
-			'Pgen': Pgen})
+			'Pgen': Pgen/10. if Pgen is not None else None})
 
-	path = '../measurements/usrp/'
+	path = '../measurements/usrp/usrp_%s_' % (det.SLUG,)
 
 	for Pgen in Pgenl:
 		kwargs = gp.out.get()
 
 		if kwargs['Pgen'] is None:
-			n = path + 'usrp_off.dat'
+			n = path + 'off.dat'
 		else:
-			n = path + 'usrp_%ddbm.dat' % (kwargs['Pgen'],)
-			n = n.replace('-','m')
+			m = '%.1f' % (kwargs['Pgen'],)
+			m = m.replace('-','m')
+			m = m.replace('.','_')
+
+			n = path + '%sdbm.dat' % (m,)
 
 		numpy.savetxt(n, kwargs['gammal'])
 

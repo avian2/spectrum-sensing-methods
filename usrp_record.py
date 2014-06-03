@@ -103,17 +103,20 @@ class CAVDetector:
 		self.L = L
 
 	def __call__(self, x):
+
+		x0 = x - numpy.mean(x)
+
 		L = self.L
-		Ns = len(x)
+		Ns = len(x0)
 
 		lbd = numpy.empty(L)
 		for l in xrange(L):
 			if l > 0:
-				xu = x[:-l]
+				xu = x0[:-l]
 			else:
-				xu = x
+				xu = x0
 
-			lbd[l] = numpy.dot(xu, x[l:])/(Ns-l)
+			lbd[l] = numpy.dot(xu, x0[l:])/(Ns-l)
 
 		R = scipy.linalg.toeplitz(lbd)
 

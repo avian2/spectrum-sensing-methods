@@ -125,7 +125,7 @@ class CAVDetector:
 
 		return T1/T2
 
-def main():
+def do_campaign(det, name):
 	fc = 864e6
 	fs = 1e6
 
@@ -137,13 +137,10 @@ def main():
 	mp = MeasurementProcess(inp)
 	mp.start()
 
-	#det = EnergyDetector()
-	det = CAVDetector()
-
 	gp = GammaProcess(mp.out, Ns, det)
 	gp.start()
 
-	Pgenl = [None] + range(-1100, -750, 10)
+	Pgenl = [None] + range(-1000, -700, 10)
 
 	for Pgen in Pgenl:
 		inp.put({'N': Ns*Np,
@@ -151,7 +148,7 @@ def main():
 			'fs': fs,
 			'Pgen': Pgen/10. if Pgen is not None else None})
 
-	path = '../measurements/usrp/usrp_%s_' % (det.SLUG,)
+	path = '../measurements/usrp/usrp_%s_%s_' % (det.SLUG, name)
 
 	for Pgen in Pgenl:
 		kwargs = gp.out.get()
@@ -172,5 +169,12 @@ def main():
 
 	gp.inp.put(None)
 	gp.join()
+
+def main():
+	#det = EnergyDetector()
+
+	for L in xrange(11, 20, 2):
+		det = CAVDetector(L=L)
+		do_campaign(det, "l%d" % (L,))
 
 main()

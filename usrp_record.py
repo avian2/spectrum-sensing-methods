@@ -60,7 +60,11 @@ class GammaProcess(Process):
 		self.out = Queue()
 
 		self.Ns = Ns
-		self.func = func
+
+		try:
+			self.func = tuple(func)
+		except TypeError:
+			self.func = (func,)
 
 	def run(self):
 		while True:
@@ -77,11 +81,12 @@ class GammaProcess(Process):
 			jl = range(0, N, self.Ns)
 
 			Np = len(jl)
-			gammal = numpy.empty(Np)
+			gammal = numpy.empty(shape=(len(self.func), Np))
 
-			for i, j in enumerate(jl):
-				x = xl.real[j:j+self.Ns]
-				gammal[i] = self.func(x)
+			for k, func in enumerate(self.func):
+				for i, j in enumerate(jl):
+					x = xl.real[j:j+self.Ns]
+					gammal[k, i] = func(x)
 
 			os.unlink(path)
 
@@ -188,10 +193,9 @@ class METDetector(EigenvalueDetector):
 
 		return lbd[-1]/numpy.sum(lbd)
 
-def do_campaign(det, fs, name):
+def do_campaign(det, fs, Ns):
 	fc = 864e6
 
-	Ns = 25000
 	Np = 1000
 
 	inp = Queue()
@@ -199,7 +203,7 @@ def do_campaign(det, fs, name):
 	mp = MeasurementProcess(inp)
 	mp.start()
 
-	gp = GammaProcess(mp.out, Ns, det)
+	gp = GammaProcess(mp.out, Ns, (d for d, name in det))
 	gp.start()
 
 	Pgenl = [None] + range(-1000, -700, 10)
@@ -210,21 +214,27 @@ def do_campaign(det, fs, name):
 			'fs': fs,
 			'Pgen': Pgen/10. if Pgen is not None else None})
 
-	path = '../measurements/usrp/usrp_fs%dmhz_%s_%s_' % (fs/1e6, det.SLUG, name)
-
 	for Pgen in Pgenl:
 		kwargs = gp.out.get()
 
 		if kwargs['Pgen'] is None:
-			n = path + 'off.dat'
+			suf = 'off.dat'
 		else:
 			m = '%.1f' % (kwargs['Pgen'],)
 			m = m.replace('-','m')
 			m = m.replace('.','_')
 
-			n = path + '%sdbm.dat' % (m,)
+			suf = '%sdbm.dat' % (m,)
 
-		numpy.savetxt(n, kwargs['gammal'])
+		for i, (d, name) in enumerate(det):
+			path = '../measurements/usrp2/usrp_fs%dmhz_Ns%dks_' % (fs/1e6, Ns/1000)
+			path += '%s_' % (d.SLUG,)
+			if name:
+				path += name + "_"
+
+			path += suf
+
+			numpy.savetxt(path, kwargs['gammal'][i,:])
 
 	mp.inp.put(None)
 	mp.join()
@@ -233,11 +243,23 @@ def do_campaign(det, fs, name):
 	gp.join()
 
 def main():
+	det = [	(EnergyDetector(), None) ]
 
-	for fs in [1e6, 2e6, 10e6]:
-		for L in xrange(5, 25, 5):
-			for cls in [MMEDetector, EMEDetector, AGMDetector, METDetector]:
-				det = cls(L=L)
-				do_campaign(det, fs=fs, name="l%d" % (L,))
+	cls = [	CAVDetector,
+		CFNDetector,
+		MACDetector,
+		MMEDetector,
+		EMEDetector,
+		AGMDetector,
+		METDetector ]
+
+	for L in xrange(5, 25, 5):
+		for c in cls:
+			det.append((c(L=L), "l%d" % (L,)))
+
+	for fs, Ns in [	(1e6, 25000),
+			(2e6, 25000),
+			(10e6, 100000) ]:
+		do_campaign(det, fs=fs, Ns=Ns)
 
 main()

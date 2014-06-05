@@ -9,9 +9,10 @@ from sensing.methods import *
 
 class GeneratorControl: pass
 
-class IEEEMicSoftSpeaker(GeneratorControl):
+class SMBVGeneratorControl(GeneratorControl):
 	def __init__(self, path="/dev/usbtmc3"):
 		self.gen = usbtmc(path)
+		self.set_waveform()
 
 	def set(self, f, P):
 
@@ -25,6 +26,18 @@ class IEEEMicSoftSpeaker(GeneratorControl):
 
 	def off(self):
 		self.gen.write("outp off\n")
+
+class IEEEMic(SMBVGeneratorControl):
+	def set_waveform(self):
+		self.gen.write("system:preset\n")
+		self.gen.write("fm:dev %d Hz\n" % (self.fdev,))
+		self.gen.write("fm:source int\n")
+		self.gen.write("lfo:freq %d Hz\n" % (self.fm,))
+		self.gen.write("fm:state on\n")
+
+class IEEEMicSoftSpeaker(IEEEMic):
+	fdev = 15000
+	fm = 3900
 
 class MeasurementProcess(Process):
 	def __init__(self, genc, inp):
@@ -155,6 +168,8 @@ def do_campaign(genc, det, fs, Ns):
 
 def main():
 	genc = IEEEMicSoftSpeaker()
+	genc.set(864.25e6, -50)
+	return
 
 	det = [	(EnergyDetector(), None) ]
 

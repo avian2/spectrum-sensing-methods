@@ -31,6 +31,8 @@ class SMBVGeneratorControl(GeneratorControl):
 
 class Noise(SMBVGeneratorControl):
 
+	SLUG = "noise"
+
 	def get_wv_data(self, fs, x):
 
 		MAX = 0x7fff
@@ -88,6 +90,9 @@ class IEEEMic(SMBVGeneratorControl):
 		self.gen.write("fm:state on\n")
 
 class IEEEMicSoftSpeaker(IEEEMic):
+
+	SLUG = "micsoft"
+
 	fdev = 15000
 	fm = 3900
 
@@ -203,7 +208,8 @@ def do_campaign(genc, det, fs, Ns):
 			suf = '%sdbm.dat' % (m,)
 
 		for i, (d, name) in enumerate(det):
-			path = '../measurements/usrp3/usrp_fs%dmhz_Ns%dks_' % (fs/1e6, Ns/1000)
+			path = '../measurements/usrp3/usrp_%s_fs%dmhz_Ns%dks_' % (
+					genc.SLUG, fs/1e6, Ns/1000)
 			path += '%s_' % (d.SLUG,)
 			if name:
 				path += name + "_"
@@ -220,8 +226,6 @@ def do_campaign(genc, det, fs, Ns):
 
 def main():
 	genc = Noise()
-	genc.set(864.25e6, -50)
-	return
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -238,8 +242,8 @@ def main():
 			det.append((c(L=L), "l%d" % (L,)))
 
 	for fs, Ns in [	(1e6, 25000),
-			#(2e6, 25000),
-			#(10e6, 100000),
+			(2e6, 25000),
+			(10e6, 100000),
 			]:
 		do_campaign(genc, det, fs=fs, Ns=Ns)
 

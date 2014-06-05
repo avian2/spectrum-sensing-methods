@@ -12,6 +12,8 @@ class GeneratorControl: pass
 class SMBVGeneratorControl(GeneratorControl):
 	def __init__(self, path="/dev/usbtmc3"):
 		self.gen = usbtmc(path)
+		self.gen.write("system:preset\n")
+
 		self.set_waveform()
 
 	def set(self, f, P):
@@ -27,9 +29,51 @@ class SMBVGeneratorControl(GeneratorControl):
 	def off(self):
 		self.gen.write("outp off\n")
 
+class Noise(SMBVGeneratorControl):
+
+	def get_wv_data(self, fs, x):
+
+		x0 = numpy.asarray(x*0x7fff, numpy.dtype('<i2'))
+
+		bin_data = x0.data
+
+		crc = 0xa50f74ff+1
+		crc ^= numpy.bitwise_xor.reduce(
+				numpy.frombuffer(bin_data, numpy.dtype('<u4')))
+
+		assert len(bin_data) % 4 == 0
+
+		data = "{TYPE: SMU-WV,%d} " % (crc,)
+		data += "{SAMPLES: %d} " % (len(bin_data)/4,)
+		data += "{LEVEL OFFS: 3,0} "
+		data += "{CLOCK: %d} " % (fs,)
+		data += "{WAVEFORM-%d: #%s}" % (len(bin_data) + 1, bin_data)
+
+		return data
+
+	def set_waveform(self):
+		N = 100000
+		fs = 10000000
+
+		noise = numpy.random.normal(size=N*2)
+		wv_data = self.get_wv_data(fs, noise)
+
+		bin_len = "%d" % (len(wv_data),)
+
+		assert len(bin_len) < 10
+
+		cmd = "bb:arb:waveform:data '/var/user/data/noise.wv', #%d%s%s\n" % (
+				len(bin_len), bin_len, wv_data)
+
+		self.gen.write("system:comm:gpib:lter eoi\n")
+		self.gen.write(cmd)
+		self.gen.write("system:comm:gpib:lter standard\n")
+
+		self.gen.write("bb:arb:wav:sel '/var/user/data/noise.wv'\n")
+		self.gen.write("bb:arb:state on\n")
+
 class IEEEMic(SMBVGeneratorControl):
 	def set_waveform(self):
-		self.gen.write("system:preset\n")
 		self.gen.write("fm:dev %d Hz\n" % (self.fdev,))
 		self.gen.write("fm:source int\n")
 		self.gen.write("lfo:freq %d Hz\n" % (self.fm,))
@@ -167,7 +211,7 @@ def do_campaign(genc, det, fs, Ns):
 	gp.join()
 
 def main():
-	genc = IEEEMicSoftSpeaker()
+	genc = Noise()
 	genc.set(864.25e6, -50)
 	return
 

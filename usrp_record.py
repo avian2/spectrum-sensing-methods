@@ -33,7 +33,13 @@ class Noise(SMBVGeneratorControl):
 
 	def get_wv_data(self, fs, x):
 
-		x0 = numpy.asarray(x*0x7fff, numpy.dtype('<i2'))
+		MAX = 0x7fff
+
+		x0 = numpy.asarray(x*MAX, numpy.dtype('<i2'))
+
+		offs = -20*numpy.log10(numpy.std(x0)/MAX)
+
+		assert offs > 0
 
 		bin_data = x0.data
 
@@ -45,7 +51,7 @@ class Noise(SMBVGeneratorControl):
 
 		data = "{TYPE: SMU-WV,%d} " % (crc,)
 		data += "{SAMPLES: %d} " % (len(bin_data)/4,)
-		data += "{LEVEL OFFS: 3,0} "
+		data += "{LEVEL OFFS: %.1f,0} " % (offs,)
 		data += "{CLOCK: %d} " % (fs,)
 		data += "{WAVEFORM-%d: #%s}" % (len(bin_data) + 1, bin_data)
 
@@ -55,7 +61,9 @@ class Noise(SMBVGeneratorControl):
 		N = 100000
 		fs = 10000000
 
-		noise = numpy.random.normal(size=N*2)
+		noise = numpy.random.normal(scale=0.3, size=N*2)
+		noise = numpy.clip(noise, -1., 1.)
+
 		wv_data = self.get_wv_data(fs, noise)
 
 		bin_len = "%d" % (len(wv_data),)

@@ -7,24 +7,36 @@ import tempfile
 import numpy
 from sensing.methods import *
 
+class GeneratorControl: pass
+
+class IEEEMicSoftSpeaker(GeneratorControl):
+	def __init__(self, path="/dev/usbtmc3"):
+		self.gen = usbtmc(path)
+
+	def set(self, f, P):
+
+		self.gen.write("freq %d Hz\n" % (f,))
+
+		if P is None:
+			self.gen.write("outp off\n")
+		else:
+			self.gen.write("pow %.1f dBm\n" % (P,))
+			self.gen.write("outp on\n")
+
+	def off(self):
+		self.gen.write("outp off\n")
+
 class MeasurementProcess(Process):
-	def __init__(self, inp):
+	def __init__(self, genc, inp):
 		Process.__init__(self)
 
 		self.inp = inp
 		self.out = Queue(maxsize=2)
-
-		self.gen = usbtmc("/dev/usbtmc3")
+		self.genc = genc
 
 	def usrp_measure(self, N, fc, fs, Pgen):
 
-		self.gen.write("freq %d Hz\n" % (fc+fs/4,))
-
-		if Pgen is None:
-			self.gen.write("outp off\n")
-		else:
-			self.gen.write("pow %.1f dBm\n" % (Pgen,))
-			self.gen.write("outp on\n")
+		self.genc.set(fc+fs/4, Pgen)
 
 		handle, path = tempfile.mkstemp()
 		os.close(handle)
@@ -38,7 +50,7 @@ class MeasurementProcess(Process):
 
 		subprocess.check_call(args)
 
-		self.gen.write("outp off\n")
+		self.genc.off()
 
 		return path
 
@@ -92,14 +104,14 @@ class GammaProcess(Process):
 			kwargs['gammal'] = gammal
 			self.out.put(kwargs)
 
-def do_campaign(det, fs, Ns):
+def do_campaign(genc, det, fs, Ns):
 	fc = 864e6
 
 	Np = 1000
 
 	inp = Queue()
 
-	mp = MeasurementProcess(inp)
+	mp = MeasurementProcess(genc, inp)
 	mp.start()
 
 	gp = GammaProcess(mp.out, Ns, (d for d, name in det))
@@ -126,7 +138,7 @@ def do_campaign(det, fs, Ns):
 			suf = '%sdbm.dat' % (m,)
 
 		for i, (d, name) in enumerate(det):
-			path = '../measurements/usrp2/usrp_fs%dmhz_Ns%dks_' % (fs/1e6, Ns/1000)
+			path = '../measurements/usrp3/usrp_fs%dmhz_Ns%dks_' % (fs/1e6, Ns/1000)
 			path += '%s_' % (d.SLUG,)
 			if name:
 				path += name + "_"
@@ -142,6 +154,8 @@ def do_campaign(det, fs, Ns):
 	gp.join()
 
 def main():
+	genc = IEEEMicSoftSpeaker()
+
 	det = [	(EnergyDetector(), None) ]
 
 	cls = [	CAVDetector,
@@ -160,6 +174,6 @@ def main():
 			#(2e6, 25000),
 			#(10e6, 100000),
 			]:
-		do_campaign(det, fs=fs, Ns=Ns)
+		do_campaign(genc, det, fs=fs, Ns=Ns)
 
 main()

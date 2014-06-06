@@ -60,8 +60,8 @@ class Noise(SMBVGeneratorControl):
 		return data
 
 	def set_waveform(self):
-		N = 100000
-		fs = 10000000
+		N = 500000
+		fs = 50000000
 
 		noise = numpy.random.normal(scale=0.3, size=N*2)
 		noise = numpy.clip(noise, -1., 1.)
@@ -187,7 +187,7 @@ def do_campaign(genc, det, fs, Ns):
 	gp = GammaProcess(mp.out, Ns, (d for d, name in det))
 	gp.start()
 
-	Pgenl = [None] + range(-1000, -700, 10)
+	Pgenl = [None] + range(-1000, -300, 20)
 
 	for Pgen in Pgenl:
 		inp.put({'N': Ns*Np,
@@ -208,7 +208,7 @@ def do_campaign(genc, det, fs, Ns):
 			suf = '%sdbm.dat' % (m,)
 
 		for i, (d, name) in enumerate(det):
-			path = '../measurements/usrp3/usrp_%s_fs%dmhz_Ns%dks_' % (
+			path = '../measurements/usrp4/usrp_%s_fs%dmhz_Ns%dks_' % (
 					genc.SLUG, fs/1e6, Ns/1000)
 			path += '%s_' % (d.SLUG,)
 			if name:

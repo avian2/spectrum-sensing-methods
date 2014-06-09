@@ -174,7 +174,7 @@ class GammaProcess(Process):
 			kwargs['gammal'] = gammal
 			self.out.put(kwargs)
 
-def do_campaign(genc, det, fs, Ns):
+def do_campaign(genc, det, fs, Ns, Pgenl, out_path):
 	fc = 864e6
 
 	Np = 1000
@@ -186,8 +186,6 @@ def do_campaign(genc, det, fs, Ns):
 
 	gp = GammaProcess(mp.out, Ns, (d for d, name in det))
 	gp.start()
-
-	Pgenl = [None] + range(-1000, -300, 20)
 
 	for Pgen in Pgenl:
 		inp.put({'N': Ns*Np,
@@ -208,8 +206,8 @@ def do_campaign(genc, det, fs, Ns):
 			suf = '%sdbm.dat' % (m,)
 
 		for i, (d, name) in enumerate(det):
-			path = '../measurements/usrp4/usrp_%s_fs%dmhz_Ns%dks_' % (
-					genc.SLUG, fs/1e6, Ns/1000)
+			path = '%s/usrp_%s_fs%dmhz_Ns%dks_' % (
+					out_path, genc.SLUG, fs/1e6, Ns/1000)
 			path += '%s_' % (d.SLUG,)
 			if name:
 				path += name + "_"
@@ -224,8 +222,9 @@ def do_campaign(genc, det, fs, Ns):
 	gp.inp.put(None)
 	gp.join()
 
-def main():
-	genc = Noise()
+def do_campaign_generator(genc, Pgenl):
+
+	out_path = "../measurements/usrp"
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -245,6 +244,17 @@ def main():
 			(2e6, 25000),
 			(10e6, 100000),
 			]:
-		do_campaign(genc, det, fs=fs, Ns=Ns)
+		do_campaign(genc, det, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path)
+
+def main():
+	genc = IEEEMicSoftSpeaker()
+	Pgenl = [None] + range(-1000, -700, 10)
+
+	do_campaign_generator(genc, Pgenl)
+
+	genc = Noise()
+	Pgenl = [None] + range(-700, -100, 20)
+
+	do_campaign_generator(genc, Pgenl)
 
 main()

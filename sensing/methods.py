@@ -91,7 +91,7 @@ class AGMDetector(EigenvalueDetector):
 	def __call__(self, x):
 		lbd = self.lbd(x)
 
-		return numpy.mean(lbd)/(numpy.prod(lbd)**(1/len(lbd)))
+		return numpy.mean(lbd)/(numpy.prod(lbd)**(1./len(lbd)))
 
 class METDetector(EigenvalueDetector):
 	SLUG = 'met'

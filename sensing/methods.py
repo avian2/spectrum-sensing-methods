@@ -65,7 +65,7 @@ class EigenvalueDetector(CovarianceDetector):
 		R = self.R(x)
 
 		lbd = numpy.linalg.eigvalsh(R)
-		return lbd.real
+		return numpy.abs(lbd)
 
 class MMEDetector(EigenvalueDetector):
 	SLUG = 'mme'

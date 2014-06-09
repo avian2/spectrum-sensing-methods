@@ -159,7 +159,11 @@ class GammaProcess(Process):
 					dtype=numpy.dtype(numpy.complex64))
 
 			N = len(xl)
-			jl = range(0, N, self.Ns)
+
+			# skip the first trace - it's typically not useful
+			# because it includes settling of AGC in the receiver
+			# and other transition effects.
+			jl = range(1, N, self.Ns)
 
 			Np = len(jl)
 			gammal = numpy.empty(shape=(len(self.func), Np))
@@ -178,6 +182,9 @@ def do_campaign(genc, det, fs, Ns, Pgenl, out_path):
 	fc = 864e6
 
 	Np = 1000
+
+	# We skip the first trace
+	Np += 1
 
 	inp = Queue()
 

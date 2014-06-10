@@ -108,7 +108,7 @@ class MeasurementProcess(Process):
 
 		self.genc.set(fc+fs/4, Pgen)
 
-		handle, path = tempfile.mkstemp()
+		handle, path = tempfile.mkstemp(dir="/tmp/mem")
 		os.close(handle)
 
 		args = ["uhd_rx_cfile", "-v",

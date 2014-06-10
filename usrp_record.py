@@ -231,7 +231,11 @@ def do_campaign(genc, det, fs, Ns, Pgenl, out_path):
 
 def do_campaign_generator(genc, Pgenl):
 
-	out_path = "../measurements/usrp"
+	out_path = "../measurements/usrp7"
+	try:
+		os.mkdir(out_path)
+	except OSError:
+		pass
 
 	det = [	(EnergyDetector(), None) ]
 

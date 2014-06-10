@@ -189,12 +189,14 @@ def do_campaign(genc, det, fs, Ns, Pgenl, out_path):
 
 	Np = 1000
 
+	extra = Ns*5
+
 	inp = Queue()
 
-	mp = MeasurementProcess(genc, inp)
+	mp = MeasurementProcess(genc, inp, extra=extra)
 	mp.start()
 
-	gp = GammaProcess(mp.out, Ns, (d for d, name in det))
+	gp = GammaProcess(mp.out, Ns, (d for d, name in det), extra=extra)
 	gp.start()
 
 	for Pgen in Pgenl:

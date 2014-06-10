@@ -97,12 +97,14 @@ class IEEEMicSoftSpeaker(IEEEMic):
 	fm = 3900
 
 class MeasurementProcess(Process):
-	def __init__(self, genc, inp):
+	def __init__(self, genc, inp, extra=250000):
 		Process.__init__(self)
 
 		self.inp = inp
 		self.out = Queue(maxsize=2)
 		self.genc = genc
+
+		self.extra = extra
 
 	def usrp_measure(self, N, fc, fs, Pgen):
 
@@ -113,7 +115,7 @@ class MeasurementProcess(Process):
 
 		args = ["uhd_rx_cfile", "-v",
 				"--freq=%d" % (fc,),
-				"--nsamples=%d" % (N,),
+				"--nsamples=%d" % (N + self.extra,),
 				"--samp-rate=%f" % (fs,),
 				"-ATX/RX",
 				path]
@@ -134,13 +136,14 @@ class MeasurementProcess(Process):
 			self.out.put(kwargs)
 
 class GammaProcess(Process):
-	def __init__(self, inp, Ns, func):
+	def __init__(self, inp, Ns, func, extra=250000):
 		Process.__init__(self)
 
 		self.inp = inp
 		self.out = Queue()
 
 		self.Ns = Ns
+		self.extra = extra
 
 		try:
 			self.func = tuple(func)
@@ -158,14 +161,17 @@ class GammaProcess(Process):
 			xl = numpy.fromfile(path,
 					dtype=numpy.dtype(numpy.complex64))
 
+			# skip leading samples - they are typically not useful
+			# because they happen while ADC is settling in the receiver
+			# and other transition effects.
+			xl = xl[self.extra:]
+
 			N = len(xl)
 
-			# skip the first trace - it's typically not useful
-			# because it includes settling of AGC in the receiver
-			# and other transition effects.
-			jl = range(1, N, self.Ns)
+			jl = range(0, N, self.Ns)
 
 			Np = len(jl)
+
 			gammal = numpy.empty(shape=(len(self.func), Np))
 
 			for k, func in enumerate(self.func):
@@ -182,9 +188,6 @@ def do_campaign(genc, det, fs, Ns, Pgenl, out_path):
 	fc = 864e6
 
 	Np = 1000
-
-	# We skip the first trace
-	Np += 1
 
 	inp = Queue()
 

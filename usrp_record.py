@@ -6,6 +6,7 @@ import tempfile
 import numpy
 from sensing.methods import *
 from sensing.signals import *
+import sys
 
 class MeasurementProcess(Process):
 	def __init__(self, genc, inp, extra=250000):
@@ -17,7 +18,25 @@ class MeasurementProcess(Process):
 
 		self.extra = extra
 
-	def usrp_measure(self, N, fc, fs, Pgen):
+		self.setup()
+
+	def setup(self):
+		pass
+
+	def run(self):
+		while True:
+			kwargs = self.inp.get()
+			if kwargs is None:
+				return
+
+			kwargs['path'] = self.measure(**kwargs)
+			self.out.put(kwargs)
+
+class USRPMeasurementProcess(MeasurementProcess):
+
+	SLUG = "usrp"
+
+	def measure(self, N, fc, fs, Pgen):
 
 		self.genc.set(fc+fs/4, Pgen)
 
@@ -37,14 +56,56 @@ class MeasurementProcess(Process):
 
 		return path
 
-	def run(self):
-		while True:
-			kwargs = self.inp.get()
-			if kwargs is None:
-				return
+import vesna.spectrumsensor
 
-			kwargs['path'] = self.usrp_measure(**kwargs)
-			self.out.put(kwargs)
+class SNEISMTVMeasurementProcess(MeasurementProcess):
+
+	SLUG = "sneismtv"
+
+	def setup(self):
+		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
+
+		config_list = self.sensor.get_config_list()
+		self.config = config_list.get_config(0, 0)
+
+	def measure(self, N, fc, fs, Pgen):
+
+		N += self.extra
+
+		Ns = 10000
+		sample_config = self.config.get_sample_config(fc, Ns)
+
+		sys.stdout.write("recording %d samples at %f Hz\n" % (N, fc))
+		sys.stdout.write("device config: %s\n" % (sample_config.config.name,))
+
+		x = []
+		def cb(sample_config, tdata):
+			x.extend(tdata.data)
+
+			sys.stdout.write('.')
+			sys.stdout.flush()
+
+			if len(x) >= N:
+				return False
+			else:
+				return True
+
+		self.genc.set(fc, Pgen)
+		self.sensor.sample_run(sample_config, cb)
+		self.genc.off()
+
+		sys.stdout.write('\n')
+
+		x = x[:N]
+
+		handle, path = tempfile.mkstemp(dir="/tmp/mem")
+		os.close(handle)
+
+		xa = numpy.array(x, dtype=numpy.dtype(numpy.complex64))
+		xa.tofile(path)
+
+		return path
+
 
 class GammaProcess(Process):
 	def __init__(self, inp, Ns, func, extra=250000):
@@ -95,16 +156,19 @@ class GammaProcess(Process):
 			kwargs['gammal'] = gammal
 			self.out.put(kwargs)
 
-def do_campaign(genc, det, fs, Ns, Pgenl, out_path):
-	fc = 864e6
-
+def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	Np = 1000
 
 	extra = Ns*5
 
+	try:
+		os.mkdir(out_path)
+	except OSError:
+		pass
+
 	inp = Queue()
 
-	mp = MeasurementProcess(genc, inp, extra=extra)
+	mp = measurement_cls(genc, inp, extra=extra)
 	mp.start()
 
 	gp = GammaProcess(mp.out, Ns, (d for d, name in det), extra=extra)
@@ -129,8 +193,10 @@ def do_campaign(genc, det, fs, Ns, Pgenl, out_path):
 			suf = '%sdbm.dat' % (m,)
 
 		for i, (d, name) in enumerate(det):
-			path = '%s/usrp_%s_fs%dmhz_Ns%dks_' % (
-					out_path, genc.SLUG, fs/1e6, Ns/1000)
+			path = '%s/%s_%s_fs%dmhz_Ns%dks_' % (
+					out_path,
+					mp.SLUG,
+					genc.SLUG, fs/1e6, Ns/1000)
 			path += '%s_' % (d.SLUG,)
 			if name:
 				path += name + "_"
@@ -145,13 +211,13 @@ def do_campaign(genc, det, fs, Ns, Pgenl, out_path):
 	gp.inp.put(None)
 	gp.join()
 
-def do_campaign_generator(genc, Pgenl):
+def do_usrp_campaign_generator(genc, Pgenl):
 
-	out_path = "../measurements/sneismtv"
-	try:
-		os.mkdir(out_path)
-	except OSError:
-		pass
+	fc = 864e6
+
+	measurement_cls = USRPMeasurementProcess
+
+	out_path = "../measurements/usrp"
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -171,17 +237,39 @@ def do_campaign_generator(genc, Pgenl):
 			(2e6, 25000),
 			(10e6, 100000),
 			]:
-		do_campaign(genc, det, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path)
+		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
+				measurement_cls=measurement_cls)
+
+def do_sneismtv_campaign_generator(genc, Pgenl):
+
+	fc = 850e6
+
+	measurement_cls = SNEISMTVMeasurementProcess
+
+	out_path = "../measurements/sneismtv"
+
+	det = [	(SNEISMTVDetector(), None) ]
+
+	#for fs, Ns in [	(1e6, 3676),
+	#		(2e6, 1838),
+	#		(10e6, 1471),
+	#		]:
+	for fs, Ns in [	(10e6, 100),
+			(2e6, 200),
+			(1e6, 400),
+			]:
+		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
+				measurement_cls=measurement_cls)
 
 def main():
 	genc = IEEEMicSoftSpeaker()
 	Pgenl = [None] + range(-1000, -700, 10)
 
-	do_campaign_generator(genc, Pgenl)
+	do_sneismtv_campaign_generator(genc, Pgenl)
 
 	genc = Noise()
 	Pgenl = [None] + range(-700, -100, 20)
 
-	do_campaign_generator(genc, Pgenl)
+	do_sneismtv_campaign_generator(genc, Pgenl)
 
 main()

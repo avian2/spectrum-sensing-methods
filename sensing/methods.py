@@ -5,8 +5,15 @@ import scipy.linalg
 class SNEISMTVDetector:
 	SLUG = 'ed'
 
+	def __init__(self, N):
+		self.N = N
+
 	def __call__(self, x):
-		x_dbm = x * 3.3 * 1000. / 4095. / 25. - 84. - 66.
+
+		assert len(x) >= self.N
+		x0 = x[:self.N]
+
+		x_dbm = x0 * 3.3 * 1000. / 4095. / 25. - 84. - 66.
 		x_w = 1e-3 * 10. ** (x_dbm / 10.)
 
 		return numpy.sum(x_w)

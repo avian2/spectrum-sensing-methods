@@ -36,7 +36,9 @@ class USRPMeasurementProcess(MeasurementProcess):
 
 	SLUG = "usrp"
 
-	def measure(self, N, fc, fs, Pgen):
+	def measure(self, Ns, Np, fc, fs, Pgen):
+
+		N = Ns*Np
 
 		self.genc.set(fc+fs/4, Pgen)
 
@@ -68,11 +70,11 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 		config_list = self.sensor.get_config_list()
 		self.config = config_list.get_config(0, 0)
 
-	def measure(self, N, fc, fs, Pgen):
+	def measure(self, Ns, Np, fc, fs, Pgen):
 
+		N = Ns*Np
 		N += self.extra
 
-		Ns = 10000
 		sample_config = self.config.get_sample_config(fc, Ns)
 
 		sys.stdout.write("recording %d samples at %f Hz\n" % (N, fc))
@@ -96,6 +98,8 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 
 		sys.stdout.write('\n')
 
+		if len(x) > N:
+			sys.stdout.write("truncating %d samples\n" % (len(x) - N,))
 		x = x[:N]
 
 		handle, path = tempfile.mkstemp(dir="/tmp/mem")
@@ -175,7 +179,8 @@ def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	gp.start()
 
 	for Pgen in Pgenl:
-		inp.put({'N': Ns*Np,
+		inp.put({'Ns': Ns,
+			'Np': Np,
 			'fc': fc,
 			'fs': fs,
 			'Pgen': Pgen/10. if Pgen is not None else None})
@@ -246,19 +251,15 @@ def do_sneismtv_campaign_generator(genc, Pgenl):
 
 	measurement_cls = SNEISMTVMeasurementProcess
 
-	out_path = "../measurements/sneismtv"
+	out_path = "../measurements/sneismtv2"
 
-	det = [	(SNEISMTVDetector(), None) ]
+	det = []
+	Ns_list = [ 3676, 1838, 1471 ]
 
-	#for fs, Ns in [	(1e6, 3676),
-	#		(2e6, 1838),
-	#		(10e6, 1471),
-	#		]:
-	for fs, Ns in [	(10e6, 100),
-			(2e6, 200),
-			(1e6, 400),
-			]:
-		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
+	for Ns in Ns_list:
+		det.append((SNEISMTVDetector(N=Ns), "n%d" % (Ns,)))
+
+	do_campaign(genc, det, fc=fc, fs=0, Ns=max(Ns_list), Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
 def main():
@@ -267,9 +268,9 @@ def main():
 
 	do_sneismtv_campaign_generator(genc, Pgenl)
 
-	genc = Noise()
-	Pgenl = [None] + range(-700, -100, 20)
+	#genc = Noise()
+	#Pgenl = [None] + range(-700, -100, 20)
 
-	do_sneismtv_campaign_generator(genc, Pgenl)
+	#do_sneismtv_campaign_generator(genc, Pgenl)
 
 main()

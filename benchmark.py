@@ -15,8 +15,8 @@ def main():
 		"EMEDetector",
 		"AGMDetector",
 		"METDetector" ]
-	for L in xrange(5, 25, 5):
-		for c in cls:
+	for c in cls:
+		for L in xrange(5, 25, 5):
 			methods.append("%s(L=%d)" % (c, L))
 
 	for Ns in [25000, 50000, 100000]:
@@ -35,6 +35,6 @@ det = sensing.methods.%s
 			r = tm.repeat(repeat=10, number=N)
 			t = min(r)/float(N)*1e6 # us/exc.
 
-			print "%s\t%d\t%.1f" % (method, Ns, t)
+			print "%s\t%d\t%f" % (method, Ns, t)
 
 main()

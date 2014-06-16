@@ -31,7 +31,7 @@ det = sensing.methods.%s
 
 			stmt = "det(x)")
 
-			N = 100
+			N = 1000
 			r = tm.repeat(repeat=10, number=N)
 			t = min(r)/float(N)*1e6 # us/exc.
 

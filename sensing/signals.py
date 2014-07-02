@@ -23,11 +23,9 @@ class SMBVGeneratorControl(GeneratorControl):
 	def off(self):
 		self.gen.write("outp off\n")
 
-class Noise(SMBVGeneratorControl):
+class ARBSMBVGeneratorControl(SMBVGeneratorControl):
 
-	SLUG = "noise"
-
-	def get_wv_data(self, fs, x):
+	def _get_wv_data(self, fs, x):
 
 		MAX = 0x7fff
 
@@ -53,14 +51,10 @@ class Noise(SMBVGeneratorControl):
 
 		return data
 
-	def set_waveform(self):
-		N = 500000
-		fs = 50000000
+	def set_arb_waveform(self, fs, x):
+		x = numpy.clip(x, -1., 1.)
 
-		noise = numpy.random.normal(scale=0.3, size=N*2)
-		noise = numpy.clip(noise, -1., 1.)
-
-		wv_data = self.get_wv_data(fs, noise)
+		wv_data = self._get_wv_data(fs, x)
 
 		bin_len = "%d" % (len(wv_data),)
 
@@ -75,6 +69,18 @@ class Noise(SMBVGeneratorControl):
 
 		self.gen.write("bb:arb:wav:sel '/var/user/data/noise.wv'\n")
 		self.gen.write("bb:arb:state on\n")
+
+class Noise(ARBSMBVGeneratorControl):
+
+	SLUG = "noise"
+
+	def set_waveform(self):
+
+		N = 500000
+		fs = 50000000
+
+		noise = numpy.random.normal(scale=0.3, size=N*2)
+		self.set_arb_waveform(fs, noise)
 
 class IEEEMic(SMBVGeneratorControl):
 	def set_waveform(self):

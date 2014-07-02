@@ -82,6 +82,29 @@ class Noise(ARBSMBVGeneratorControl):
 		noise = numpy.random.normal(scale=0.3, size=N*2)
 		self.set_arb_waveform(fs, noise)
 
+class CW(ARBSMBVGeneratorControl):
+
+	SLUG = "cw"
+
+	def __init__(self, dc=.5, **kwargs):
+		self.dc = dc
+		ARBSMBVGeneratorControl.__init__(self, **kwargs)
+
+		self.SLUG = "cw_dc%d" % (dc*100,)
+
+	def set_waveform(self):
+
+		N = 10000
+		fs = 10000000
+
+		N1 = int(N * self.dc)
+		N0 = N - N1
+
+		x = numpy.concatenate( (numpy.ones(N1), numpy.zeros(N0)) )
+		assert len(x) == N
+
+		self.set_arb_waveform(fs, x)
+
 class IEEEMic(SMBVGeneratorControl):
 	def set_waveform(self):
 		self.gen.write("fm:dev %d Hz\n" % (self.fdev,))

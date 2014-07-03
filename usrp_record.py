@@ -245,6 +245,29 @@ def do_usrp_campaign_generator(genc, Pgenl):
 		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
+def do_usrp_campaign_dc():
+
+	fc = 850e6
+	fs = 2e6
+	Ns = 25000
+
+	measurement_cls = USRPMeasurementProcess
+
+	out_path = "../measurements/usrp_dc"
+
+	det = [	(EnergyDetector(), None) ]
+
+	Pgenl = [ -600 ]
+
+	for dc in xrange(10, 101, 2):
+
+		dcf = dc * 1e-2
+		genc = CW(dc=dcf)
+
+		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
+				measurement_cls=measurement_cls)
+
+
 def do_sneismtv_campaign_generator(genc, Pgenl):
 
 	fc = 850e6

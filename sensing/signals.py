@@ -28,12 +28,13 @@ class ARBSMBVGeneratorControl(SMBVGeneratorControl):
 	def _get_wv_data(self, fs, x):
 
 		MAX = 0x7fff
+		xs = x*MAX
 
-		x0 = numpy.asarray(x*MAX, numpy.dtype('<i2'))
+		x0 = numpy.asarray(xs, numpy.dtype('<i2'))
 
-		offs = -20*numpy.log10(numpy.std(x0)/MAX)
+		offs = -20*numpy.log10(numpy.sqrt(numpy.mean(xs**2))/MAX)
 
-		assert offs > 0
+		assert offs >= 0
 
 		bin_data = x0.data
 

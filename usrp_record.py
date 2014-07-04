@@ -274,7 +274,7 @@ def do_sneismtv_campaign_generator(genc, Pgenl):
 
 	measurement_cls = SNEISMTVMeasurementProcess
 
-	out_path = "../measurements/sneismtv2"
+	out_path = "../measurements/sneismtv_dc"
 
 	det = []
 	Ns_list = [ 3676, 1838, 1471 ]
@@ -285,11 +285,24 @@ def do_sneismtv_campaign_generator(genc, Pgenl):
 	do_campaign(genc, det, fc=fc, fs=0, Ns=max(Ns_list), Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
-def main():
-	genc = IEEEMicSoftSpeaker()
-	Pgenl = [None] + range(-1000, -700, 10)
+def do_sneismtv_campaign_dc():
 
-	do_sneismtv_campaign_generator(genc, Pgenl)
+	Pgenl = [ -600 ]
+
+	for dc in xrange(10, 100+1, 2):
+
+		dcf = dc * 1e-2
+		genc = CW(dc=dcf)
+
+		do_sneismtv_campaign_generator(genc, Pgenl)
+
+def main():
+	do_sneismtv_campaign_dc()
+	#genc = CW(dc=.9)
+	#genc.set(864.5e6, -60.)
+	#Pgenl = [None] + range(-1000, -700, 10)
+
+	#do_sneismtv_campaign_generator(genc, Pgenl)
 
 	#genc = Noise()
 	#Pgenl = [None] + range(-700, -100, 20)

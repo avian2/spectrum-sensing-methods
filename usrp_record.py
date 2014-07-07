@@ -216,13 +216,22 @@ def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	gp.inp.put(None)
 	gp.join()
 
-def do_usrp_campaign_generator(genc, Pgenl):
+def do_usrp_campaign_generator_det(genc, Pgenl, det):
 
 	fc = 864e6
 
 	measurement_cls = USRPMeasurementProcess
 
-	out_path = "../measurements/usrp"
+	out_path = "../measurements/usrp2_dc"
+
+	for fs, Ns in [	(1e6, 25000),
+			(2e6, 25000),
+			(10e6, 100000),
+			]:
+		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
+				measurement_cls=measurement_cls)
+
+def do_usrp_campaign_generator(genc, Pgenl):
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -238,22 +247,9 @@ def do_usrp_campaign_generator(genc, Pgenl):
 		for c in cls:
 			det.append((c(L=L), "l%d" % (L,)))
 
-	for fs, Ns in [	(1e6, 25000),
-			(2e6, 25000),
-			(10e6, 100000),
-			]:
-		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
-				measurement_cls=measurement_cls)
+	do_usrp_campaign_generator_det(genc, Pgenl, det)
 
 def do_usrp_campaign_dc():
-
-	fc = 850e6
-	fs = 2e6
-	Ns = 25000
-
-	measurement_cls = USRPMeasurementProcess
-
-	out_path = "../measurements/usrp_dc"
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -264,8 +260,7 @@ def do_usrp_campaign_dc():
 		dcf = dc * 1e-2
 		genc = CW(dc=dcf)
 
-		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
-				measurement_cls=measurement_cls)
+		do_usrp_campaign_generator_det(genc, Pgenl, det)
 
 
 def do_sneismtv_campaign_generator(genc, Pgenl):
@@ -297,9 +292,10 @@ def do_sneismtv_campaign_dc():
 		do_sneismtv_campaign_generator(genc, Pgenl)
 
 def main():
-	do_sneismtv_campaign_dc()
-	#genc = CW(dc=.9)
-	#genc.set(864.5e6, -60.)
+	do_usrp_campaign_dc()
+	#do_sneismtv_campaign_dc()
+
+	#genc = IEEEMicSoftSpeaker()
 	#Pgenl = [None] + range(-1000, -700, 10)
 
 	#do_sneismtv_campaign_generator(genc, Pgenl)

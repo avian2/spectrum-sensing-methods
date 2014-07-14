@@ -291,12 +291,6 @@ def ex_sneismtv_campaign_dc():
 
 		do_sneismtv_campaign_generator(genc, Pgenl)
 
-def ex_sneismtv_campaign_noise():
-	genc = Noise()
-	Pgenl = [None] + range(-700, -100, 20)
-
-	do_sneismtv_campaign_generator(genc, Pgenl)
-
 def ex_sneismtv_campaign_mic():
 	genc = IEEEMicSoftSpeaker()
 	Pgenl = [None] + range(-1000, -700, 10)

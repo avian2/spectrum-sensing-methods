@@ -222,7 +222,7 @@ def do_usrp_campaign_generator_det(genc, Pgenl, det):
 
 	measurement_cls = USRPMeasurementProcess
 
-	out_path = "../measurements/usrp2_dc"
+	out_path = "out"
 
 	for fs, Ns in [	(1e6, 25000),
 			(2e6, 25000),
@@ -249,7 +249,7 @@ def do_usrp_campaign_generator(genc, Pgenl):
 
 	do_usrp_campaign_generator_det(genc, Pgenl, det)
 
-def do_usrp_campaign_dc():
+def ex_usrp_campaign_dc():
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -269,7 +269,7 @@ def do_sneismtv_campaign_generator(genc, Pgenl):
 
 	measurement_cls = SNEISMTVMeasurementProcess
 
-	out_path = "../measurements/sneismtv_dc"
+	out_path = "out"
 
 	det = []
 	Ns_list = [ 3676, 1838, 1471 ]
@@ -280,7 +280,7 @@ def do_sneismtv_campaign_generator(genc, Pgenl):
 	do_campaign(genc, det, fc=fc, fs=0, Ns=max(Ns_list), Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
-def do_sneismtv_campaign_dc():
+def ex_sneismtv_campaign_dc():
 
 	Pgenl = [ -600 ]
 
@@ -291,18 +291,49 @@ def do_sneismtv_campaign_dc():
 
 		do_sneismtv_campaign_generator(genc, Pgenl)
 
+def ex_sneismtv_campaign_noise():
+	genc = Noise()
+	Pgenl = [None] + range(-700, -100, 20)
+
+	do_sneismtv_campaign_generator(genc, Pgenl)
+
+def ex_sneismtv_campaign_mic():
+	genc = IEEEMicSoftSpeaker()
+	Pgenl = [None] + range(-1000, -700, 10)
+
+	do_sneismtv_campaign_generator(genc, Pgenl)
+
+def ex_usrp_campaign_noise():
+	genc = Noise()
+	Pgenl = [None] + range(-700, -100, 20)
+
+	do_usrp_campaign_generator(genc, Pgenl)
+
+def ex_usrp_campaign_mic():
+	genc = IEEEMicSoftSpeaker()
+	Pgenl = [None] + range(-1000, -700, 10)
+
+	do_usrp_campaign_generator(genc, Pgenl)
+
 def main():
-	do_usrp_campaign_dc()
-	#do_sneismtv_campaign_dc()
 
-	#genc = IEEEMicSoftSpeaker()
-	#Pgenl = [None] + range(-1000, -700, 10)
+	if len(sys.argv) == 2:
+		cmd = sys.argv[1]
+		globals()[cmd]()
+	else:
+		print "USAGE: %s <func>" % (sys.argv[0],)
+		print
+		print "available functions:"
+		funcs = []
+		for name, val in globals().iteritems():
+			if not callable(val):
+				continue
+			if name.startswith("ex_"):
+				funcs.append(name)
 
-	#do_sneismtv_campaign_generator(genc, Pgenl)
+		funcs.sort()
 
-	#genc = Noise()
-	#Pgenl = [None] + range(-700, -100, 20)
-
-	#do_sneismtv_campaign_generator(genc, Pgenl)
+		for name in funcs:
+			print "   ", name
 
 main()

@@ -112,6 +112,22 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 
 		return path
 
+class SimulatedMeasurementProcess(MeasurementProcess):
+
+	SLUG = "sim"
+
+	def measure(self, Ns, Np, fc, fs, Pgen):
+		N = Ns*Np
+
+		x = self.genc.get(N, fc, fs, Pgen)
+
+		handle, path = tempfile.mkstemp(dir=TEMPDIR)
+		os.close(handle)
+
+		xa = numpy.array(x, dtype=numpy.dtype(numpy.complex64))
+		xa.tofile(path)
+
+		return path
 
 class GammaProcess(Process):
 	def __init__(self, inp, Ns, func, extra=250000):
@@ -218,11 +234,9 @@ def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	gp.inp.put(None)
 	gp.join()
 
-def do_usrp_campaign_generator_det(genc, Pgenl, det):
+def do_sampling_campaign_generator_det(genc, Pgenl, det, measurement_cls):
 
 	fc = 864e6
-
-	measurement_cls = USRPMeasurementProcess
 
 	out_path = "out"
 
@@ -233,7 +247,7 @@ def do_usrp_campaign_generator_det(genc, Pgenl, det):
 		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
-def do_usrp_campaign_generator(genc, Pgenl):
+def do_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -249,7 +263,7 @@ def do_usrp_campaign_generator(genc, Pgenl):
 		for c in cls:
 			det.append((c(L=L), "l%d" % (L,)))
 
-	do_usrp_campaign_generator_det(genc, Pgenl, det)
+	do_sampling_campaign_generator_det(genc, Pgenl, det, measurement_cls)
 
 def ex_usrp_campaign_dc():
 
@@ -262,7 +276,7 @@ def ex_usrp_campaign_dc():
 		dcf = dc * 1e-2
 		genc = CW(dc=dcf)
 
-		do_usrp_campaign_generator_det(genc, Pgenl, det)
+		do_sampling_campaign_generator_det(genc, Pgenl, det, USRPMeasurementProcess)
 
 
 def do_sneismtv_campaign_generator(genc, Pgenl):
@@ -303,13 +317,19 @@ def ex_usrp_campaign_noise():
 	genc = Noise()
 	Pgenl = [None] + range(-700, -100, 20)
 
-	do_usrp_campaign_generator(genc, Pgenl)
+	do_sampling_campaign_generator(genc, Pgenl, USRPMeasurementProcess)
 
 def ex_usrp_campaign_mic():
 	genc = IEEEMicSoftSpeaker()
 	Pgenl = [None] + range(-1000, -700, 10)
 
-	do_usrp_campaign_generator(genc, Pgenl)
+	do_sampling_campaign_generator(genc, Pgenl, USRPMeasurementProcess)
+
+def ex_sim_campaign_mic():
+	genc = SimulatedIEEEMicSoftSpeaker()
+	Pgenl = [None] + range(-1000, -700, 10)
+
+	do_sampling_campaign_generator(genc, Pgenl, SimulatedMeasurementProcess)
 
 def main():
 

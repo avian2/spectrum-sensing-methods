@@ -119,3 +119,37 @@ class IEEEMicSoftSpeaker(IEEEMic):
 
 	fdev = 15000
 	fm = 3900
+
+class SimulatedIEEEMicSoftSpeaker:
+	SLUG = "micsoft"
+
+	fdev = 15000
+	fm = 3900
+
+	def get_sig(self, N, fs):
+
+		n = numpy.arange(N)
+		t = n/fs
+
+		fc = fs/4.
+
+		ph = 2.0*numpy.pi*fc*t + self.fdev/self.fm * numpy.cos(2.0*numpy.pi*self.fm*t)
+		x = numpy.cos(ph)
+
+		return x
+
+	def get(self, N, fc, fs, Pgen):
+
+		if Pgen is None:
+			x = numpy.zeros(N)
+		else:
+			Pgen -= 30.
+
+			x = self.get_sig(N, fs)
+			x /= numpy.std(x)
+			x *= 10.**(Pgen/20.)
+
+		Pnoise = -100
+		x += numpy.random.normal(loc=0, scale=10.**(Pnoise/20), size=N)
+
+		return x

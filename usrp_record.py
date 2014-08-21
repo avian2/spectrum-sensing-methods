@@ -8,6 +8,8 @@ from sensing.methods import *
 from sensing.signals import *
 import sys
 
+TEMPDIR="/tmp/mem"
+
 class MeasurementProcess(Process):
 	def __init__(self, genc, inp, extra=250000):
 		Process.__init__(self)
@@ -42,7 +44,7 @@ class USRPMeasurementProcess(MeasurementProcess):
 
 		self.genc.set(fc+fs/4, Pgen)
 
-		handle, path = tempfile.mkstemp(dir="/tmp/mem")
+		handle, path = tempfile.mkstemp(dir=TEMPDIR)
 		os.close(handle)
 
 		args = ["uhd_rx_cfile", "-v",
@@ -102,7 +104,7 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 			sys.stdout.write("truncating %d samples\n" % (len(x) - N,))
 		x = x[:N]
 
-		handle, path = tempfile.mkstemp(dir="/tmp/mem")
+		handle, path = tempfile.mkstemp(dir=TEMPDIR)
 		os.close(handle)
 
 		xa = numpy.array(x, dtype=numpy.dtype(numpy.complex64))

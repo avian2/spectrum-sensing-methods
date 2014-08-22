@@ -13,15 +13,16 @@ Contents of this repository:
 
     Results are written into out/ subdirectory.
 
-    This script assumes a tmpfs mounted under /tmp/mem. tmpfs is used for
-    temporary files from GNU Radio to avoid buffer overflows. If you have a
-    fast enough hard drive, you can change the TMPDIR value at the top of
-    the source to some other path.
+    This script assumes a tmpfs mounted under /tmp/mem. tmpfs is used
+    for temporary files from GNU Radio to avoid buffer overflows. If you
+    have a fast enough hard drive, you can change the TMPDIR value at
+    the top of the source to some other path.
 
 
  - sensing/methods.py
 
-    Python module with implementations of several spectrum sensing methods.
+    Python module with implementations of several spectrum sensing
+    methods.
 
 
  - sensing/signals.py
@@ -32,13 +33,14 @@ Contents of this repository:
 
  - measurements/
 
-    Results of measurements using USRP, VESNA SNE-ISMTV-UHF and simulation.
+    Results of measurements using USRP, VESNA SNE-ISMTV-UHF and
+    simulation.
 
 
   - analysis/
 
-    Several IPython notebooks with descriptions of experiments and analyses
-    of measurements.
+    Several IPython notebooks with descriptions of experiments and
+    analyses of measurements.
 
 
 For details, see "A Practical View of Spectrum Sensing Methods" (to be

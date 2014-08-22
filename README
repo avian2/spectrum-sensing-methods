@@ -1,0 +1,65 @@
+Spectrum sensing methods
+========================
+
+Contents of this repository:
+
+ - record.py
+
+    Python script for performing experiments. To run, use
+
+    $ python record.py <experiment>
+
+    Run without an argument to list available experiments.
+
+    Results are written into out/ subdirectory.
+
+    This script assumes a tmpfs mounted under /tmp/mem. tmpfs is used for
+    temporary files from GNU Radio to avoid buffer overflows. If you have a
+    fast enough hard drive, you can change the TMPDIR value at the top of
+    the source to some other path.
+
+
+ - sensing/methods.py
+
+    Python module with implementations of several spectrum sensing methods.
+
+
+ - sensing/signals.py
+
+    Python module with test signals that can be programmed into a
+    Rohde&Schwarz vector signal generator.
+
+
+ - measurements/
+
+    Results of measurements using USRP, VESNA SNE-ISMTV-UHF and simulation.
+
+
+  - analysis/
+
+    Several IPython notebooks with descriptions of experiments and analyses
+    of measurements.
+
+
+For details, see "A Practical View of Spectrum Sensing Methods" (to be
+published)
+
+
+License
+=======
+
+Spectrum sensing method experiments and implementations
+Copyright (C) 2014  Tomaz Solc
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.

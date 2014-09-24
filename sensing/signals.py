@@ -1,4 +1,5 @@
 from vesna.rftest import usbtmc
+import sys
 import numpy
 
 class GeneratorControl: pass
@@ -153,3 +154,17 @@ class SimulatedIEEEMicSoftSpeaker:
 		x += numpy.random.normal(loc=0, scale=10.**(Pnoise/20), size=N)
 
 		return x
+
+def main():
+	slug = sys.argv[1]
+
+	for name, value in globals().iteritems():
+		if hasattr(value, "SLUG") and value.SLUG == slug:
+			print "Using GeneratorControl class", name
+			value()
+			return
+
+	print "class with slug", slug, "not found!"
+
+if __name__ == "__main__":
+	main()

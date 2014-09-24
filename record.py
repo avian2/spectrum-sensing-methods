@@ -62,6 +62,61 @@ class USRPMeasurementProcess(MeasurementProcess):
 
 import vesna.spectrumsensor
 
+class SNEESHTERMeasurementProcess(MeasurementProcess):
+
+	SLUG = "eshter"
+
+	def setup(self):
+		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
+		self.config_list = self.sensor.get_config_list()
+
+	def measure(self, Ns, Np, fc, fs, Pgen):
+
+		if fs == 1e6:
+			device_config = self.config_list.get_config(0, 3)
+		elif fs == 2e6:
+			device_config = self.config_list.get_config(0, 2)
+		else:
+			assert False
+
+		Np += int(self.extra/Ns) + 1
+
+		sample_config = device_config.get_sample_config(fc, Ns)
+		assert fs == sample_config.config.bw*2.
+
+		sys.stdout.write("recording %d samples at %f Hz\n" % (Ns*Np, fc))
+		sys.stdout.write("device config: %s\n" % (sample_config.config.name,))
+
+		x = numpy.empty(shape=Ns*Np, dtype=numpy.dtype(numpy.complex64))
+		sample_config.i = 0
+
+		def cb(sample_config, data):
+			assert len(data.data) == Ns
+
+			x[sample_config.i*Ns:(sample_config.i+1)*Ns] = data.data
+
+			sys.stdout.write('.')
+			sys.stdout.flush()
+
+			sample_config.i += 1
+
+			if sample_config.i >= Np:
+				return False
+			else:
+				return True
+
+		self.genc.set(fc, Pgen)
+		self.sensor.sample_run(sample_config, cb)
+		self.genc.off()
+
+		handle, path = tempfile.mkstemp(dir=TEMPDIR)
+		os.close(handle)
+
+		x.tofile(path)
+
+		return path
+
+
 class SNEISMTVMeasurementProcess(MeasurementProcess):
 
 	SLUG = "sneismtv"
@@ -234,20 +289,17 @@ def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	gp.inp.put(None)
 	gp.join()
 
-def do_sampling_campaign_generator_det(genc, Pgenl, det, measurement_cls):
+def do_sampling_campaign_generator_det(genc, Pgenl, det, fsNs, measurement_cls):
 
 	fc = 864e6
 
 	out_path = "out"
 
-	for fs, Ns in [	(1e6, 25000),
-			(2e6, 25000),
-			(10e6, 100000),
-			]:
+	for fs, Ns in fsNs:
 		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
-def do_sampling_campaign_generator(genc, Pgenl, measurement_cls):
+def do_sampling_campaign_generator(genc, Pgenl, fsNs, measurement_cls):
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -263,9 +315,29 @@ def do_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 		for c in cls:
 			det.append((c(L=L), "l%d" % (L,)))
 
-	do_sampling_campaign_generator_det(genc, Pgenl, det, measurement_cls)
+	do_sampling_campaign_generator_det(genc, Pgenl, det, fsNs, measurement_cls)
+
+def do_usrp_sampling_campaign_generator(genc, Pgenl, measurement_cls):
+	fsNs = [	(1e6, 25000),
+			(2e6, 25000),
+			(10e6, 100000),
+		]
+
+	do_sampling_campaign_generator(genc, Pgenl, fsNs, measurement_cls)
+
+def do_eshter_sampling_campaign_generator(genc, Pgenl, measurement_cls):
+	fsNs = [	(1e6, 20000),
+			(2e6, 20000),
+		]
+
+	do_sampling_campaign_generator(genc, Pgenl, fsNs, measurement_cls)
 
 def ex_usrp_campaign_dc():
+
+	fsNs = [	(1e6, 25000),
+			(2e6, 25000),
+			(10e6, 100000),
+		]
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -276,7 +348,7 @@ def ex_usrp_campaign_dc():
 		dcf = dc * 1e-2
 		genc = CW(dc=dcf)
 
-		do_sampling_campaign_generator_det(genc, Pgenl, det, USRPMeasurementProcess)
+		do_sampling_campaign_generator_det(genc, Pgenl, det, fsNs, USRPMeasurementProcess)
 
 
 def do_sneismtv_campaign_generator(genc, Pgenl):
@@ -317,19 +389,32 @@ def ex_usrp_campaign_noise():
 	genc = Noise()
 	Pgenl = [None] + range(-700, -100, 20)
 
-	do_sampling_campaign_generator(genc, Pgenl, USRPMeasurementProcess)
+	do_usrp_sampling_campaign_generator(genc, Pgenl, USRPMeasurementProcess)
 
 def ex_usrp_campaign_mic():
 	genc = IEEEMicSoftSpeaker()
 	Pgenl = [None] + range(-1000, -700, 10)
 
-	do_sampling_campaign_generator(genc, Pgenl, USRPMeasurementProcess)
+	do_usrp_sampling_campaign_generator(genc, Pgenl, USRPMeasurementProcess)
 
 def ex_sim_campaign_mic():
 	genc = SimulatedIEEEMicSoftSpeaker()
 	Pgenl = [None] + range(-1000, -700, 10)
 
-	do_sampling_campaign_generator(genc, Pgenl, SimulatedMeasurementProcess)
+	do_usrp_sampling_campaign_generator(genc, Pgenl, SimulatedMeasurementProcess)
+
+def ex_eshter_campaign_noise():
+	genc = Noise()
+	Pgenl = [None] + range(-700, -100, 20)
+
+	do_eshter_sampling_campaign_generator(genc, Pgenl, SNEESHTERMeasurementProcess)
+
+def ex_eshter_campaign_mic():
+	genc = IEEEMicSoftSpeaker()
+	Pgenl = [None] + range(-1000, -700, 10)
+
+	do_eshter_sampling_campaign_generator(genc, Pgenl, SNEESHTERMeasurementProcess)
+
 
 def main():
 

@@ -289,9 +289,7 @@ def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	gp.inp.put(None)
 	gp.join()
 
-def do_sampling_campaign_generator_det(genc, Pgenl, det, fsNs, measurement_cls):
-
-	fc = 864e6
+def do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, measurement_cls):
 
 	out_path = "out"
 
@@ -299,7 +297,7 @@ def do_sampling_campaign_generator_det(genc, Pgenl, det, fsNs, measurement_cls):
 		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
-def do_sampling_campaign_generator(genc, Pgenl, fsNs, measurement_cls):
+def do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls):
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -315,7 +313,7 @@ def do_sampling_campaign_generator(genc, Pgenl, fsNs, measurement_cls):
 		for c in cls:
 			det.append((c(L=L), "l%d" % (L,)))
 
-	do_sampling_campaign_generator_det(genc, Pgenl, det, fsNs, measurement_cls)
+	do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, measurement_cls)
 
 def do_usrp_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 	fsNs = [	(1e6, 25000),
@@ -323,14 +321,18 @@ def do_usrp_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 			(10e6, 100000),
 		]
 
-	do_sampling_campaign_generator(genc, Pgenl, fsNs, measurement_cls)
+	fc = 864e6
+
+	do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls)
 
 def do_eshter_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 	fsNs = [	(1e6, 20000),
 			(2e6, 20000),
 		]
 
-	do_sampling_campaign_generator(genc, Pgenl, fsNs, measurement_cls)
+	fc = 850e6
+
+	do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls)
 
 def ex_usrp_campaign_dc():
 
@@ -338,6 +340,8 @@ def ex_usrp_campaign_dc():
 			(2e6, 25000),
 			(10e6, 100000),
 		]
+
+	fc = 864e6
 
 	det = [	(EnergyDetector(), None) ]
 
@@ -348,7 +352,7 @@ def ex_usrp_campaign_dc():
 		dcf = dc * 1e-2
 		genc = CW(dc=dcf)
 
-		do_sampling_campaign_generator_det(genc, Pgenl, det, fsNs, USRPMeasurementProcess)
+		do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, USRPMeasurementProcess)
 
 
 def do_sneismtv_campaign_generator(genc, Pgenl):

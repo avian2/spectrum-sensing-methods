@@ -79,15 +79,15 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 		else:
 			assert False
 
-		Np += int(self.extra/Ns) + 1
+		Np2 = Np + int(self.extra/Ns) + 1
 
 		sample_config = device_config.get_sample_config(fc, Ns)
 		assert fs == sample_config.config.bw*2.
 
-		sys.stdout.write("recording %d samples at %f Hz\n" % (Ns*Np, fc))
+		sys.stdout.write("recording %d samples at %f Hz\n" % (Ns*Np2, fc))
 		sys.stdout.write("device config: %s\n" % (sample_config.config.name,))
 
-		x = numpy.empty(shape=Ns*Np, dtype=numpy.dtype(numpy.complex64))
+		x = numpy.empty(shape=Ns*Np2)
 		sample_config.i = 0
 
 		def cb(sample_config, data):
@@ -100,7 +100,7 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 
 			sample_config.i += 1
 
-			if sample_config.i >= Np:
+			if sample_config.i >= Np2:
 				return False
 			else:
 				return True
@@ -109,10 +109,18 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 		self.sensor.sample_run(sample_config, cb)
 		self.genc.off()
 
+		sys.stdout.write('\n')
+
+		# ok, this expects [self.extra][Ns*Np]
+		N = Ns*Np + self.extra
+		xa = numpy.empty(shape=N, dtype=numpy.dtype(numpy.complex64))
+		xa[:self.extra] = x[:self.extra]
+		xa[self.extra:] = x[-Ns*Np:]
+
 		handle, path = tempfile.mkstemp(dir=TEMPDIR)
 		os.close(handle)
 
-		x.tofile(path)
+		xa.tofile(path)
 
 		return path
 

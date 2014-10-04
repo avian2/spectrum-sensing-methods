@@ -59,10 +59,9 @@ def run_simulation(genc, det, Np, Ns, fc, fs, Pgen):
 def run_simulation_(kwargs):
 	return run_simulation(**kwargs)
 
-def ex_sim_noise_campaign_mic():
+def do_sim_campaign_gencl(fs, gencl):
 
 	Pgenl = [None] + range(-100, -80, 1)
-	Pnl  = range(-160, -110, 5)
 
 	fc = 864e6
 
@@ -77,14 +76,14 @@ def ex_sim_noise_campaign_mic():
 
 	task_list = []
 	for Pgen in Pgenl:
-		for Pn in Pnl:
+		for genc in gencl:
 			task_list.append({
-				'genc': Spurious(SimulatedIEEEMicSoftSpeaker(), Pn=Pn),
+				'genc': genc,
 				'det': det,
 				'Np': 1000,
 				'Ns': 25000,
 				'fc': fc,
-				'fs': 1e6,
+				'fs': fs,
 				'Pgen': Pgen
 			})
 
@@ -102,6 +101,21 @@ def ex_sim_noise_campaign_mic():
 	print
 
 	#run_simulation_(task_list[0])
+
+def ex_sim_noise_campaign_mic():
+
+	fs = 2e6
+
+	gencl = []
+	gencl.append(SimulatedIEEEMicSoftSpeaker())
+
+	Pnl  = range(-130, -100, 2)
+	for Pn in Pnl:
+		gencl.append(Spurious(SimulatedIEEEMicSoftSpeaker(), fs/8., Pn=Pn))
+		gencl.append(Spurious(SimulatedIEEEMicSoftSpeaker(), 2.*fs/8., Pn=Pn))
+		gencl.append(Spurious(SimulatedIEEEMicSoftSpeaker(), 3.*fs/8., Pn=Pn))
+
+	do_sim_campaign_gencl(fs, gencl)
 
 def main():
 

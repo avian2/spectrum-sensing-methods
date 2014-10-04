@@ -156,20 +156,21 @@ class SimulatedIEEEMicSoftSpeaker:
 		return x
 
 class Spurious:
-	def __init__(self, signal, Pn):
+	def __init__(self, signal, fn, Pn):
 		self.signal = signal
 		self.An = 10.**(Pn/20.)
-		self.SLUG = "%s_spurious%d" % (signal.SLUG, Pn)
+		self.fn = fn
+		self.SLUG = "%s_spurious_%ddbm_%dkhz" % (signal.SLUG, fn/1e3, Pn)
 
-	def _get(self, N):
-		ph = 2. * numpy.pi * numpy.arange(N) / 4.
+	def _get(self, N, fs):
+		ph = 2. * numpy.pi * numpy.arange(N) * self.fn / fs
 		xn = numpy.cos(ph)
 		xn *= self.An / numpy.std(xn)
 		return xn
 
 	def get(self, N, fc, fs, Pgen):
 		xs = self.signal.get(N, fc, fs, Pgen)
-		xn = self._get(N)
+		xn = self._get(N, fs)
 
 		return xs + xn
 

@@ -160,7 +160,7 @@ class Spurious:
 		self.signal = signal
 		self.An = 10.**(Pn/20.)
 		self.fn = fn
-		self.SLUG = "%s_spurious_%ddbm_%dkhz" % (signal.SLUG, fn/1e3, Pn)
+		self.SLUG = "%s_spurious_%dkhz_%ddbm" % (signal.SLUG, fn/1e3, Pn)
 
 	def _get(self, N, fs):
 		ph = 2. * numpy.pi * numpy.arange(N) * self.fn / fs

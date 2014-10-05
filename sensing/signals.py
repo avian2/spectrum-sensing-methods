@@ -1,6 +1,7 @@
 from vesna.rftest import usbtmc
 import sys
 import numpy
+import scipy.signal
 
 class GeneratorControl: pass
 
@@ -139,7 +140,7 @@ class SimulatedIEEEMicSoftSpeaker:
 
 		return x
 
-	def get(self, N, fc, fs, Pgen):
+	def get(self, N, fc, fs, Pgen, Pnoise=-100):
 
 		if Pgen is None:
 			x = numpy.zeros(N)
@@ -150,7 +151,6 @@ class SimulatedIEEEMicSoftSpeaker:
 			x /= numpy.std(x)
 			x *= 10.**(Pgen/20.)
 
-		Pnoise = -100
 		x += numpy.random.normal(loc=0, scale=10.**(Pnoise/20), size=N)
 
 		return x
@@ -173,6 +173,28 @@ class Spurious:
 		xn = self._get(N, fs)
 
 		return xs + xn
+
+class Oversample:
+	def __init__(self, signal, k):
+		self.signal = signal
+		self.k = k
+
+		self.SLUG = "%s_ddc_%d" % (signal.SLUG, k)
+
+	def get(self, N, fc, fs, Pgen):
+		assert N % self.k == 0
+		b = N/self.k
+
+		x = numpy.empty(N)
+		for n in xrange(self.k):
+			xs = self.signal.get(N, fc, fs, Pgen)
+
+			xd = scipy.signal.decimate(xs, self.k)
+			assert len(xd) == b
+
+			x[n*b:(n+1)*b] = xd
+
+		return x
 
 def main():
 	slug = sys.argv[1]

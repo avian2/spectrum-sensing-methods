@@ -102,15 +102,15 @@ def do_sim_campaign_gencl(fs, gencl):
 
 	#run_simulation_(task_list[0])
 
-def ex_sim_noise_campaign_mic():
+def ex_sim_spurious_campaign_mic():
 
 	fs = 2e6
 
 	fnl = [
-		fs/4.,
-		fs/8.,
-		fs/32.,
-		fs/128.,
+		fs/4.+1e3,
+		fs/8.+1e3,
+#		fs/32.,
+#		fs/128.,
 	]
 
 	gencl = []
@@ -120,6 +120,23 @@ def ex_sim_noise_campaign_mic():
 	for Pn in Pnl:
 		for fn in fnl:
 			gencl.append(Spurious(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
+
+	do_sim_campaign_gencl(fs, gencl)
+
+def ex_sim_oversample_campaign_mic():
+
+	fs = 2e6
+
+	kl = [
+		4,
+		8,
+		16,
+		32
+	]
+
+	gencl = []
+	for k in kl:
+		gencl.append(Oversample(SimulatedIEEEMicSoftSpeaker(), k=k))
 
 	do_sim_campaign_gencl(fs, gencl)
 

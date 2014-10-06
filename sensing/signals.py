@@ -128,26 +128,27 @@ class SimulatedIEEEMicSoftSpeaker:
 	fdev = 15000
 	fm = 3900
 
-	def get_sig(self, N, fs):
+	def get_sig(self, N, fs, fmic):
 
 		n = numpy.arange(N)
 		t = n/fs
 
-		fc = fs/4.
+		if fmic is None:
+			fmic = fs/4.
 
-		ph = 2.0*numpy.pi*fc*t + self.fdev/self.fm * numpy.cos(2.0*numpy.pi*self.fm*t)
+		ph = 2.0*numpy.pi*fmic*t + self.fdev/self.fm * numpy.cos(2.0*numpy.pi*self.fm*t)
 		x = numpy.cos(ph)
 
 		return x
 
-	def get(self, N, fc, fs, Pgen, Pnoise=-100):
+	def get(self, N, fc, fs, Pgen, Pnoise=-100, fmic=None):
 
 		if Pgen is None:
 			x = numpy.zeros(N)
 		else:
 			Pgen -= 30.
 
-			x = self.get_sig(N, fs)
+			x = self.get_sig(N, fs, fmic)
 			x /= numpy.std(x)
 			x *= 10.**(Pgen/20.)
 
@@ -187,7 +188,7 @@ class Oversample:
 
 		x = numpy.empty(N)
 		for n in xrange(self.k):
-			xs = self.signal.get(N, fc, fs, Pgen)
+			xs = self.signal.get(N, fc, fs*self.k, Pgen, fmic=fs/4)
 
 			xd = scipy.signal.decimate(xs, self.k)
 			assert len(xd) == b

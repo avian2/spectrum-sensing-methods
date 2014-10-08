@@ -1,6 +1,8 @@
 import glob
 import numpy
 import re
+import sys
+import os
 from matplotlib import pyplot
 
 
@@ -60,14 +62,18 @@ def get_pinmin(campaign_glob, gamma0, Pdmin):
 
 	Pin, Pd = get_campaign(campaign_glob, gamma0)
 
-	pyplot.figure()
-	pyplot.plot(Pin, Pd)
-	pyplot.xlabel("Pin")
-	pyplot.ylabel("Pd")
-	pyplot.axis([None, None, 0, 1])
-	pyplot.title(campaign_glob)
-	pyplot.grid()
-	pyplot.savefig("pinmin/figures/%s" % (campaign_glob.replace("_*.dat", ".png").replace("out/", ""),))
+#X	figname = os.path.basename(campaign_glob).replace("_*.dat", ".png")
+#X	figpath = "pinmin/figures/" + figname
+#X
+#X	pyplot.figure()
+#X	pyplot.plot(Pin, Pd)
+#X	pyplot.xlabel("Pin")
+#X	pyplot.ylabel("Pd")
+#X	pyplot.axis([None, None, 0, 1])
+#X	pyplot.title(campaign_glob)
+#X	pyplot.grid()
+#X	pyplot.savefig(figpath)
+#X	pyplot.close()
 
 	Pinmin = numpy.interp(Pdmin, Pd, Pin, left=0, right=0)
 
@@ -81,8 +87,10 @@ def process_campaign(campaign_glob, fout):
 	fout.write("%s\t%f\n" % (campaign_glob, Pinmin))
 
 def main():
-	fout = open("pinmin/pinmin.dat", "w")
-	for path in glob.glob("out/*_off.dat"):
+	dir = sys.argv[1]
+
+	fout = open("pinmin/%s_pinmin.dat" % (dir,), "w")
+	for path in glob.glob("%s/*_off.dat" % (dir,)):
 		campaign_glob = path.replace("_off.", "_*.")
 		print campaign_glob
 		process_campaign(campaign_glob, fout)

@@ -8,6 +8,7 @@ from sensing.methods import *
 from sensing.signals import *
 import sys
 import progressbar
+import itertools
 
 TEMPDIR="/tmp"
 
@@ -59,7 +60,7 @@ def run_simulation(genc, det, Np, Ns, fc, fs, Pgen):
 def run_simulation_(kwargs):
 	return run_simulation(**kwargs)
 
-def do_sim_campaign_gencl(fs, gencl):
+def do_sim_campaign_gencl(fs, Ns, gencl):
 
 	Pgenl = [None] + range(-100, -80, 1)
 
@@ -81,7 +82,7 @@ def do_sim_campaign_gencl(fs, gencl):
 				'genc': genc,
 				'det': det,
 				'Np': 1000,
-				'Ns': 25000,
+				'Ns': Ns,
 				'fc': fc,
 				'fs': fs,
 				'Pgen': Pgen
@@ -95,6 +96,7 @@ def do_sim_campaign_gencl(fs, gencl):
 	pbar.start()
 
 	for i, v in enumerate(pool.imap_unordered(run_simulation_, task_list)):
+	#for i, v in enumerate(itertools.imap(run_simulation_, task_list)):
 		pbar.update(i)
 
 	pbar.finish()
@@ -104,41 +106,43 @@ def do_sim_campaign_gencl(fs, gencl):
 
 def ex_sim_spurious_campaign_mic():
 
+	Ns = 25000
 	fs = 2e6
 
 	fnl = [
-		fs/4.+1e3,
-		fs/8.+1e3,
+		3.*fs/8.,
+		3.*fs/8.+1e3,
+#		fs/4.,
+#		fs/4.+1e3,
+#		fs/8.,
+#		fs/8.+1e3,
 #		fs/32.,
 #		fs/128.,
 	]
 
 	gencl = []
-	gencl.append(SimulatedIEEEMicSoftSpeaker())
+#	gencl.append(SimulatedIEEEMicSoftSpeaker())
 
 	Pnl  = range(-130, -100, 2)
 	for Pn in Pnl:
 		for fn in fnl:
 			gencl.append(Spurious(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
 
-	do_sim_campaign_gencl(fs, gencl)
+	do_sim_campaign_gencl(fs, Ns, gencl)
 
 def ex_sim_oversample_campaign_mic():
 
+	Ns = 25000
 	fs = 2e6
 
-	kl = [
-		4,
-		8,
-		16,
-		32
-	]
+	#kl = range(1, 9)
+	kl = [1]
 
 	gencl = []
 	for k in kl:
-		gencl.append(Oversample(SimulatedIEEEMicSoftSpeaker(), k=k))
+		gencl.append(Divide(Oversample(SimulatedIEEEMicSoftSpeaker(), k=k), Nb=Ns*4))
 
-	do_sim_campaign_gencl(fs, gencl)
+	do_sim_campaign_gencl(fs, Ns, gencl)
 
 def main():
 

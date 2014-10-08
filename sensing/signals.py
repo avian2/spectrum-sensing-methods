@@ -182,18 +182,45 @@ class Oversample:
 
 		self.SLUG = "%s_ddc_%d" % (signal.SLUG, k)
 
-	def get(self, N, fc, fs, Pgen):
-		assert N % self.k == 0
-		b = N/self.k
+	def get(self, N, fc, fs, Pgen, Pnoise=-100):
+
+		if Pgen is None:
+			xd = numpy.zeros(N)
+		else:
+			x = self.signal.get_sig(N*self.k, fs*self.k, fmic=fs/4)
+			x *= 10.**((Pgen-30.)/20.) / numpy.std(x)
+
+			if self.k == 1:
+				xd = x
+			else:
+				xd = scipy.signal.decimate(x, self.k)
+
+			assert len(xd) == N
+
+		n = numpy.random.normal(loc=0, scale=1, size=N*self.k)
+		if self.k == 1:
+			nd = n
+		else:
+			nd = scipy.signal.decimate(n, self.k)
+		nd *= 10.**(Pnoise/20.) / numpy.std(nd)
+
+		assert len(nd) == N
+
+		return xd + nd
+
+class Divide:
+	def __init__(self, signal, Nb):
+		self.signal = signal
+		self.Nb = Nb
+
+		self.SLUG = signal.SLUG
+
+	def get(self, N, *args, **kwargs):
+		assert N % self.Nb == 0
 
 		x = numpy.empty(N)
-		for n in xrange(self.k):
-			xs = self.signal.get(N, fc, fs*self.k, Pgen, fmic=fs/4)
-
-			xd = scipy.signal.decimate(xs, self.k)
-			assert len(xd) == b
-
-			x[n*b:(n+1)*b] = xd
+		for n in xrange(N/self.Nb):
+			x[n*self.Nb:(n+1)*self.Nb] = self.signal.get(self.Nb, *args, **kwargs)
 
 		return x
 

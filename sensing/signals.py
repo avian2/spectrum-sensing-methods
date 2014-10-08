@@ -156,7 +156,7 @@ class SimulatedIEEEMicSoftSpeaker:
 
 		return x
 
-class Spurious:
+class SpuriousCosine:
 	def __init__(self, signal, fn, Pn):
 		self.signal = signal
 		self.An = 10.**(Pn/20.)
@@ -172,6 +172,18 @@ class Spurious:
 	def get(self, N, fc, fs, Pgen):
 		xs = self.signal.get(N, fc, fs, Pgen)
 		xn = self._get(N, fs)
+
+		return xs + xn
+
+class SpuriousGaussian:
+	def __init__(self, signal, Pn):
+		self.signal = signal
+		self.An = 10.**(Pn/20.)
+		self.SLUG = "%s_spurious_gaussian_%ddbm" % (signal.SLUG, Pn)
+
+	def get(self, N, fc, fs, Pgen):
+		xs = self.signal.get(N, fc, fs, Pgen)
+		xn = numpy.random.normal(loc=0, scale=self.An, size=N)
 
 		return xs + xn
 

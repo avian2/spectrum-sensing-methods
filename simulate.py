@@ -68,12 +68,12 @@ def do_sim_campaign_gencl(fs, Ns, gencl):
 
 	det = [	(EnergyDetector(), None) ]
 
-	cls = [	CAVDetector,
-		MACDetector ]
-
-	for L in xrange(5, 25, 5):
-		for c in cls:
-			det.append((c(L=L), "l%d" % (L,)))
+#	cls = [	CAVDetector,
+#		MACDetector ]
+#
+#	for L in xrange(5, 25, 5):
+#		for c in cls:
+#			det.append((c(L=L), "l%d" % (L,)))
 
 	task_list = []
 	for Pgen in Pgenl:
@@ -126,9 +126,24 @@ def ex_sim_spurious_campaign_mic():
 	Pnl  = range(-130, -100, 2)
 	for Pn in Pnl:
 		for fn in fnl:
-			gencl.append(Spurious(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
+			gencl.append(SpuriousCosine(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
 
 	do_sim_campaign_gencl(fs, Ns, gencl)
+
+def ex_sim_spurious_gaussian_campaign_mic():
+
+	Ns = 25000
+	fs = 2e6
+
+	gencl = []
+	gencl.append(SimulatedIEEEMicSoftSpeaker())
+
+	Pnl  = range(-130, -100, 2)
+	for Pn in Pnl:
+		gencl.append(SpuriousGaussian(SimulatedIEEEMicSoftSpeaker(), Pn=Pn))
+
+	do_sim_campaign_gencl(fs, Ns, gencl)
+
 
 def ex_sim_oversample_campaign_mic():
 

@@ -29,13 +29,17 @@ class ARBSMBVGeneratorControl(SMBVGeneratorControl):
 	def _get_wv_data(self, fs, x):
 
 		MAX = 0x7fff
-		xs = x*MAX
+		xs = numpy.clip(x, -1., 1.)*MAX
 
-		x0 = numpy.asarray(xs, numpy.dtype('<i2'))
+		x0 = numpy.empty(len(xs)*2, numpy.dtype('<i2'))
+		x0[::2] = numpy.real(xs)
+		x0[1::2] = numpy.imag(xs)
 
-		offs = -20*numpy.log10(numpy.sqrt(numpy.mean(xs**2))/MAX)
+		xs2 = numpy.real(xs*numpy.conjugate(xs))
+		rms_offs = 10.*numpy.log10(MAX**2/numpy.mean(xs2))
+		peak_offs = 10.*numpy.log10(MAX**2/numpy.max(xs2))
 
-		assert offs >= 0
+		assert rms_offs >= 0
 
 		bin_data = x0.data
 
@@ -47,15 +51,13 @@ class ARBSMBVGeneratorControl(SMBVGeneratorControl):
 
 		data = "{TYPE: SMU-WV,%d} " % (crc,)
 		data += "{SAMPLES: %d} " % (len(bin_data)/4,)
-		data += "{LEVEL OFFS: %.1f,0} " % (offs,)
+		data += "{LEVEL OFFS: %.1f,%.1f} " % (rms_offs, peak_offs)
 		data += "{CLOCK: %d} " % (fs,)
 		data += "{WAVEFORM-%d: #%s}" % (len(bin_data) + 1, bin_data)
 
 		return data
 
 	def set_arb_waveform(self, fs, x):
-		x = numpy.clip(x, -1., 1.)
-
 		wv_data = self._get_wv_data(fs, x)
 
 		bin_len = "%d" % (len(wv_data),)
@@ -81,7 +83,9 @@ class Noise(ARBSMBVGeneratorControl):
 		N = 500000
 		fs = 50000000
 
-		noise = numpy.random.normal(scale=0.3, size=N*2)
+		x = numpy.random.normal(scale=0.19, size=N*2)
+		noise = x[::2] + complex(0, 1)*x[1::2]
+
 		self.set_arb_waveform(fs, noise)
 
 class CW(ARBSMBVGeneratorControl):

@@ -145,7 +145,7 @@ class SimulatedIEEEMicSoftSpeaker:
 
 		return x
 
-	def get(self, N, fc, fs, Pgen, Pnoise=-100, fmic=None):
+	def get(self, N, fc, fs, Pgen, fmic=None):
 
 		if Pgen is None:
 			x = numpy.zeros(N)
@@ -155,8 +155,6 @@ class SimulatedIEEEMicSoftSpeaker:
 			x = self.get_sig(N, fs, fmic)
 			x /= numpy.std(x)
 			x *= 10.**(Pgen/20.)
-
-		x += numpy.random.normal(loc=0, scale=10.**(Pnoise/20), size=N)
 
 		return x
 

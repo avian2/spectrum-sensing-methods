@@ -150,8 +150,6 @@ class SimulatedIEEEMicSoftSpeaker:
 		if Pgen is None:
 			x = numpy.zeros(N)
 		else:
-			Pgen -= 30.
-
 			x = self.get_sig(N, fs, fmic)
 			x /= numpy.std(x)
 			x *= 10.**(Pgen/20.)
@@ -202,7 +200,7 @@ class Oversample:
 			xd = numpy.zeros(N)
 		else:
 			x = self.signal.get_sig(N*self.k, fs*self.k, fmic=fs/4)
-			x *= 10.**((Pgen-30.)/20.) / numpy.std(x)
+			x *= 10.**(Pgen/20.) / numpy.std(x)
 
 			if self.k == 1:
 				xd = x

@@ -62,18 +62,18 @@ def run_simulation_(kwargs):
 
 def do_sim_campaign_gencl(fs, Ns, gencl):
 
-	Pgenl = [None] + range(-100, -80, 1)
+	Pgenl = [None] + range(-130, -80, 1)
 
 	fc = 864e6
 
 	det = [	(EnergyDetector(), None) ]
 
-#	cls = [	CAVDetector,
-#		MACDetector ]
-#
-#	for L in xrange(5, 25, 5):
-#		for c in cls:
-#			det.append((c(L=L), "l%d" % (L,)))
+	cls = [	CAVDetector,
+		MACDetector ]
+
+	for L in xrange(5, 25, 5):
+		for c in cls:
+			det.append((c(L=L), "l%d" % (L,)))
 
 	task_list = []
 	for Pgen in Pgenl:
@@ -156,6 +156,16 @@ def ex_sim_oversample_campaign_mic():
 	gencl = []
 	for k in kl:
 		gencl.append(Divide(Oversample(SimulatedIEEEMicSoftSpeaker(), k=k), Nb=Ns*4))
+
+	do_sim_campaign_gencl(fs, Ns, gencl)
+
+def ex_sim_campaign_mic():
+
+	Ns = 25000
+	fs = 2e6
+
+	gencl = []
+	gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=-100))
 
 	do_sim_campaign_gencl(fs, Ns, gencl)
 

@@ -8,7 +8,7 @@ from sensing.methods import *
 from sensing.signals import *
 import sys
 
-TEMPDIR="/tmp"
+TEMPDIR="/tmp/mem"
 
 class MeasurementProcess(Process):
 	def __init__(self, genc, inp, extra=250000):
@@ -414,28 +414,6 @@ def ex_sim_campaign_mic():
 	Pgenl = [None] + range(-1000, -700, 10)
 
 	do_usrp_sampling_campaign_generator(genc, Pgenl, SimulatedMeasurementProcess)
-
-def ex_sim_noise_campaign_mic():
-	measurement_cls = SimulatedMeasurementProcess
-
-	Pgenl = [None] + range(-1000, -800, 10)
-
-	fsNs = [	(1e6, 25000) ]
-
-	fc = 864e6
-
-	det = [	(EnergyDetector(), None) ]
-
-	cls = [	CAVDetector,
-		MACDetector ]
-
-	for L in xrange(5, 25, 5):
-		for c in cls:
-			det.append((c(L=L), "l%d" % (L,)))
-
-	for Pn in xrange(-130, -100, 5):
-		genc = Spurious(SimulatedIEEEMicSoftSpeaker(), Pn=Pn)
-		do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, measurement_cls)
 
 def ex_eshter_campaign_noise():
 	genc = Noise()

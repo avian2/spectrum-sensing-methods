@@ -62,7 +62,7 @@ def run_simulation_(kwargs):
 
 def do_sim_campaign_gencl(fs, Ns, gencl):
 
-	Pgenl = [None] + range(-130, -80, 1)
+	Pgenl = [None] + range(-140, -100, 1)
 
 	fc = 864e6
 

@@ -1,6 +1,7 @@
 from vesna.rftest import usbtmc
 import sys
 import numpy
+import scipy.signal
 
 class GeneratorControl: pass
 
@@ -131,31 +132,111 @@ class SimulatedIEEEMicSoftSpeaker:
 	fdev = 15000
 	fm = 3900
 
-	def get_sig(self, N, fs):
+	def get_sig(self, N, fs, fmic):
 
 		n = numpy.arange(N)
 		t = n/fs
 
-		fc = fs/4.
+		if fmic is None:
+			fmic = fs/4.
 
-		ph = 2.0*numpy.pi*fc*t + self.fdev/self.fm * numpy.cos(2.0*numpy.pi*self.fm*t)
+		ph = 2.0*numpy.pi*fmic*t + self.fdev/self.fm * numpy.cos(2.0*numpy.pi*self.fm*t)
 		x = numpy.cos(ph)
 
 		return x
 
-	def get(self, N, fc, fs, Pgen):
+	def get(self, N, fc, fs, Pgen, Pnoise=-100, fmic=None):
 
 		if Pgen is None:
 			x = numpy.zeros(N)
 		else:
 			Pgen -= 30.
 
-			x = self.get_sig(N, fs)
+			x = self.get_sig(N, fs, fmic)
 			x /= numpy.std(x)
 			x *= 10.**(Pgen/20.)
 
-		Pnoise = -100
 		x += numpy.random.normal(loc=0, scale=10.**(Pnoise/20), size=N)
+
+		return x
+
+class SpuriousCosine:
+	def __init__(self, signal, fn, Pn):
+		self.signal = signal
+		self.An = 10.**(Pn/20.)
+		self.fn = fn
+		self.SLUG = "%s_spurious_%dkhz_%ddbm" % (signal.SLUG, fn/1e3, Pn)
+
+	def _get(self, N, fs):
+		ph = 2. * numpy.pi * numpy.arange(N) * self.fn / fs
+		xn = numpy.cos(ph)
+		xn *= self.An / numpy.std(xn)
+		return xn
+
+	def get(self, N, fc, fs, Pgen):
+		xs = self.signal.get(N, fc, fs, Pgen)
+		xn = self._get(N, fs)
+
+		return xs + xn
+
+class SpuriousGaussian:
+	def __init__(self, signal, Pn):
+		self.signal = signal
+		self.An = 10.**(Pn/20.)
+		self.SLUG = "%s_spurious_gaussian_%ddbm" % (signal.SLUG, Pn)
+
+	def get(self, N, fc, fs, Pgen):
+		xs = self.signal.get(N, fc, fs, Pgen)
+		xn = numpy.random.normal(loc=0, scale=self.An, size=N)
+
+		return xs + xn
+
+class Oversample:
+	def __init__(self, signal, k):
+		self.signal = signal
+		self.k = k
+
+		self.SLUG = "%s_ddc_%d" % (signal.SLUG, k)
+
+	def get(self, N, fc, fs, Pgen, Pnoise=-100):
+
+		if Pgen is None:
+			xd = numpy.zeros(N)
+		else:
+			x = self.signal.get_sig(N*self.k, fs*self.k, fmic=fs/4)
+			x *= 10.**((Pgen-30.)/20.) / numpy.std(x)
+
+			if self.k == 1:
+				xd = x
+			else:
+				xd = scipy.signal.decimate(x, self.k)
+
+			assert len(xd) == N
+
+		n = numpy.random.normal(loc=0, scale=1, size=N*self.k)
+		if self.k == 1:
+			nd = n
+		else:
+			nd = scipy.signal.decimate(n, self.k)
+		nd *= 10.**(Pnoise/20.) / numpy.std(nd)
+
+		assert len(nd) == N
+
+		return xd + nd
+
+class Divide:
+	def __init__(self, signal, Nb):
+		self.signal = signal
+		self.Nb = Nb
+
+		self.SLUG = signal.SLUG
+
+	def get(self, N, *args, **kwargs):
+		assert N % self.Nb == 0
+
+		x = numpy.empty(N)
+		for n in xrange(N/self.Nb):
+			x[n*self.Nb:(n+1)*self.Nb] = self.signal.get(self.Nb, *args, **kwargs)
 
 		return x
 

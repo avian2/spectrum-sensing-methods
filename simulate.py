@@ -126,11 +126,11 @@ def ex_sim_spurious_campaign_mic():
 	Pnl  = range(-130, -100, 2)
 	for Pn in Pnl:
 		for fn in fnl:
-			gencl.append(SpuriousCosine(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
+			gencl.append(AddSpuriousCosine(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
 
 	do_sim_campaign_gencl(fs, Ns, gencl)
 
-def ex_sim_spurious_gaussian_campaign_mic():
+def ex_sim_gaussian_noise_campaign_mic():
 
 	Ns = 25000
 	fs = 2e6
@@ -140,7 +140,7 @@ def ex_sim_spurious_gaussian_campaign_mic():
 
 	Pnl  = range(-130, -100, 2)
 	for Pn in Pnl:
-		gencl.append(SpuriousGaussian(SimulatedIEEEMicSoftSpeaker(), Pn=Pn))
+		gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=Pn))
 
 	do_sim_campaign_gencl(fs, Ns, gencl)
 

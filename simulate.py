@@ -35,12 +35,6 @@ def get_path(genc, func, funcname, Ns, fs, Pgen):
 
 	path += suf
 
-	try:
-		os.mkdir(OUTPATH)
-		os.mkdir(OUTPATH + "/dat")
-	except OSError:
-		pass
-
 	return path
 
 def run_simulation(genc, det, Np, Ns, fc, fs, Pgen):
@@ -189,8 +183,16 @@ def ex_sim_campaign_mic():
 def main():
 
 	if len(sys.argv) == 2:
+		try:
+			os.mkdir(OUTPATH)
+			os.mkdir(OUTPATH + "/dat")
+		except OSError:
+			pass
+
 		cmd = sys.argv[1]
 		globals()[cmd]()
+
+		open(OUTPATH + "/done", "w")
 	else:
 		print "USAGE: %s <func>" % (sys.argv[0],)
 		print

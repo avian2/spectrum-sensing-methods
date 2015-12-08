@@ -9,6 +9,7 @@ from sensing.signals import *
 import sys
 import progressbar
 import itertools
+import traceback
 
 OUTPATH=datetime.datetime.now().strftime("simout-%Y%m%d-%H%M%S")
 
@@ -63,7 +64,11 @@ def run_simulation(genc, det, Np, Ns, fc, fs, Pgen):
 		numpy.savetxt(path, gammal)
 
 def run_simulation_(kwargs):
-	return run_simulation(**kwargs)
+	try:
+		return run_simulation(**kwargs)
+	except Exception:
+		traceback.print_exc()
+		raise
 
 def do_sim_campaign_gencl(fs, Ns, gencl):
 

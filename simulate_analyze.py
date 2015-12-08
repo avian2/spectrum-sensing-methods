@@ -58,19 +58,19 @@ def get_campaign(path, gamma0):
 
 	return Pin, Pd
 
-def get_pinmin(campaign_glob, gamma0, Pdmin):
+def get_pinmin(campaign_glob, gamma0, Pdmin, figdir):
 
 	Pin, Pd = get_campaign(campaign_glob, gamma0)
 
 	figname = os.path.basename(campaign_glob).replace("_*.dat", ".png")
-	figpath = "pinmin2/figures/" + figname
+	figpath = os.path.join(figdir, figname)
 
 	pyplot.figure()
 	pyplot.plot(Pin, Pd)
 	pyplot.xlabel("Pin")
 	pyplot.ylabel("Pd")
 	pyplot.axis([None, None, 0, 1])
-	pyplot.title(campaign_glob)
+	pyplot.title(os.path.basename(campaign_glob))
 	pyplot.grid()
 	pyplot.savefig(figpath)
 	pyplot.close()
@@ -79,21 +79,38 @@ def get_pinmin(campaign_glob, gamma0, Pdmin):
 
 	return Pinmin
 
-def process_campaign(campaign_glob, fout):
+def process_campaign(campaign_glob, fout, figdir):
 	gamma0 = get_gamma0(campaign_glob)
 
-	Pinmin = get_pinmin(campaign_glob, gamma0, .9)
+	Pinmin = get_pinmin(campaign_glob, gamma0, .9, figdir)
 
 	fout.write("%s\t%f\n" % (campaign_glob, Pinmin))
 
 def main():
-	dir = sys.argv[1]
+	try:
+		indir = sys.argv[1]
+	except IndexError:
+		print "USAGE: %s dir_to_analyze" % (sys.argv[0],)
+		return
 
-	fout = open("pinmin2/%s_pinmin.dat" % (dir,), "w")
-	for path in glob.glob("%s/*_off.dat" % (dir,)):
+	outdir = os.path.join(indir, "ana")
+	figdir = os.path.join(indir, "fig")
+
+	try:
+		os.mkdir(outdir)
+	except OSError:
+		pass
+
+	try:
+		os.mkdir(figdir)
+	except OSError:
+		pass
+
+	fout = open("%s/pinmin.dat" % (outdir,), "w")
+	for path in glob.glob("%s/dat/*_off.dat" % (indir,)):
 		campaign_glob = path.replace("_off.", "_*.")
 		print campaign_glob
-		process_campaign(campaign_glob, fout)
+		process_campaign(campaign_glob, fout, figdir)
 
 	fout.close()
 

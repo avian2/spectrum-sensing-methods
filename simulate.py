@@ -24,7 +24,7 @@ def get_path(genc, func, funcname, Ns, fs, Pgen):
 
 		suf = '%sdbm.dat' % (m,)
 
-	path = '%s/%s_%s_fs%dmhz_Ns%dks_' % (
+	path = '%s/dat/%s_%s_fs%dmhz_Ns%dks_' % (
 				OUTPATH,
 				mp_slug,
 				genc.SLUG, fs/1e6, Ns/1000)
@@ -36,6 +36,7 @@ def get_path(genc, func, funcname, Ns, fs, Pgen):
 
 	try:
 		os.mkdir(OUTPATH)
+		os.mkdir(OUTPATH + "/dat")
 	except OSError:
 		pass
 

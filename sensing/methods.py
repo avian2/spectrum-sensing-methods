@@ -138,4 +138,5 @@ class CAMDetector(CyclostationaryDetector):
 		Sx0 = numpy.tile(Sx[:,N].reshape((self.Np, 1)), (1, 2*N))
 		T = numpy.abs(Sx/Sx0)
 
-		return numpy.max(T)
+		h = numpy.max([numpy.max(T[:,:N]), numpy.max(T[:,N+1:])])
+		return h

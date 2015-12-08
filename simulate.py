@@ -80,11 +80,12 @@ def do_sim_campaign_gencl(fs, Ns, gencl):
 		AGMDetector,
 		METDetector ]
 
-	for L in xrange(5, 25, 5):
-		for c in cls:
-			det.append((c(L=L), "l%d" % (L,)))
+	#for L in xrange(5, 25, 5):
+	#	for c in cls:
+	#		det.append((c(L=L), "l%d" % (L,)))
 
-	det += [ (CAMDetector(Np=128, L=128/4), None) ]
+	for Np in [128,]:
+		det += [ (CAMDetector(Np=Np, L=Np/4), "Np%d" % (Np,)) ]
 
 	task_list = []
 	for Pgen in Pgenl:
@@ -99,7 +100,7 @@ def do_sim_campaign_gencl(fs, Ns, gencl):
 				'Pgen': Pgen
 			})
 
-	pool = Pool(processes=4)
+	pool = Pool(processes=5)
 
 
 	widgets = [ progressbar.Percentage(), ' ', progressbar.Bar(), ' ', progressbar.ETA() ] 

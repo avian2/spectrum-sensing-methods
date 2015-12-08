@@ -2,6 +2,8 @@ import numpy
 import numpy.linalg
 import scipy.linalg
 
+from sensing.utils import fam
+
 class SNEISMTVDetector:
 	SLUG = 'ed'
 
@@ -117,3 +119,23 @@ class METDetector(EigenvalueDetector):
 		lbd.sort()
 
 		return lbd[-1]/numpy.sum(lbd)
+
+class CyclostationaryDetector:
+	def __init__(self, Np, L):
+		self.Np = Np
+		self.L = L
+
+	def SCF(self, x):
+		return fam(x, self.Np, self.L)
+
+class CAMDetector(CyclostationaryDetector):
+	SLUG = 'cam'
+
+	def __call__(self, x):
+		Sx = self.SCF(x)
+
+		N = Sx.shape[1]/2
+		Sx0 = numpy.tile(Sx[:,N].reshape((self.Np, 1)), (1, 2*N))
+		T = numpy.abs(Sx/Sx0)
+
+		return numpy.max(T)

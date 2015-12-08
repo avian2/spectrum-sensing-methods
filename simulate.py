@@ -73,11 +73,18 @@ def do_sim_campaign_gencl(fs, Ns, gencl):
 	det = [	(EnergyDetector(), None) ]
 
 	cls = [	CAVDetector,
-		MACDetector ]
+		CFNDetector,
+		MACDetector,
+		MMEDetector,
+		EMEDetector,
+		AGMDetector,
+		METDetector ]
 
 	for L in xrange(5, 25, 5):
 		for c in cls:
 			det.append((c(L=L), "l%d" % (L,)))
+
+	det += [ (CAMDetector(Np=128, L=128/4), None) ]
 
 	task_list = []
 	for Pgen in Pgenl:
@@ -85,7 +92,7 @@ def do_sim_campaign_gencl(fs, Ns, gencl):
 			task_list.append({
 				'genc': genc,
 				'det': det,
-				'Np': 1000,
+				'Np': 200,
 				'Ns': Ns,
 				'fc': fc,
 				'fs': fs,

@@ -10,10 +10,9 @@ import sys
 import progressbar
 import itertools
 
-TEMPDIR="/tmp"
+OUTPATH=datetime.datetime.now().strftime("simout-%Y%m%d-%H%M%S")
 
 def get_path(genc, func, funcname, Ns, fs, Pgen):
-	out_path = "out"
 	mp_slug = "sim"
 
 	if Pgen is None:
@@ -26,7 +25,7 @@ def get_path(genc, func, funcname, Ns, fs, Pgen):
 		suf = '%sdbm.dat' % (m,)
 
 	path = '%s/%s_%s_fs%dmhz_Ns%dks_' % (
-				out_path,
+				OUTPATH,
 				mp_slug,
 				genc.SLUG, fs/1e6, Ns/1000)
 	path += '%s_' % (func.SLUG,)
@@ -34,6 +33,11 @@ def get_path(genc, func, funcname, Ns, fs, Pgen):
 		path += funcname + "_"
 
 	path += suf
+
+	try:
+		os.mkdir(OUTPATH)
+	except OSError:
+		pass
 
 	return path
 

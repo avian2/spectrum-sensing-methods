@@ -186,13 +186,42 @@ def cmdline():
 	parser = OptionParser()
 	parser.add_option("-f", dest="func", metavar="FUNCTION",
 			help="function to run")
+	parser.add_option("-p", dest="nproc", metavar="NPROC", type="int", default=4,
+			help="number of processes to run")
+	parser.add_option("-s", dest="slice", metavar="SLICE", default="0:1",
+			help="slice of tasklist to run (e.g. 1:10 for slice 1 of 10)")
 
 	(options, args) = parser.parse_args()
 
 	return options
 
+def make_slice(task_list, options):
+	i, n = map(int, options.slice.split(":"))
+
+	#print "slice %d of %d" % (i, n)
+
+	m = len(task_list)
+
+	#print "task list len", m
+
+	slice_size = m/n
+	if m % n > 0:
+		slice_size += 1
+
+	#print "slice size", slice_size
+
+	start = slice_size*i
+
+	#print "from %d to %d" % (start, start+slice_size)
+
+	assert(slice_size*n >= m)
+
+	return task_list[start:start+slice_size]
+
 def run(task_list, options):
-	pool = Pool(processes=5)
+	pool = Pool(processes=options.nproc)
+
+	task_list = make_slice(task_list, options)
 
 	widgets = [ progressbar.Percentage(), ' ', progressbar.Bar(), ' ', progressbar.ETA() ] 
 	pbar = progressbar.ProgressBar(widgets=widgets, maxval=len(task_list)-1)

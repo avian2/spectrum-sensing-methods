@@ -140,3 +140,15 @@ class CAMDetector(CyclostationaryDetector):
 
 		h = numpy.max([numpy.max(T[:,:N]), numpy.max(T[:,N+1:])])
 		return h
+
+class CANDetector(CyclostationaryDetector):
+	SLUG = 'can'
+
+	def __call__(self, x):
+		Sx = self.SCF(x)
+
+		N = Sx.shape[1]/2
+		T = numpy.abs(Sx)
+
+		h = numpy.max([numpy.max(T[:,:N]), numpy.max(T[:,N+1:])])
+		return h

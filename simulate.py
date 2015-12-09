@@ -86,7 +86,9 @@ def make_sim_campaign_gencl_task_list(fs, Ns, gencl, Pgenl):
 	#		det.append((c(L=L), "l%d" % (L,)))
 
 	for Np in [128,]:
-		det += [ (CAMDetector(Np=Np, L=Np/4), "Np%d" % (Np,)) ]
+		det += [
+			(CAMDetector(Np=Np, L=Np/4), "Np%d" % (Np,)),
+			(CANDetector(Np=Np, L=Np/4), "Np%d" % (Np,)) ]
 
 	task_list = []
 	for Pgen in Pgenl:

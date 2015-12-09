@@ -10,6 +10,7 @@ import sys
 import progressbar
 import itertools
 import traceback
+from optparse import OptionParser
 
 OUTPATH=datetime.datetime.now().strftime("simout-%Y%m%d-%H%M%S")
 
@@ -195,22 +196,34 @@ def ex_sim_campaign_noise():
 
 	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
 
+def cmdline():
+	parser = OptionParser()
+	parser.add_option("-f", dest="func", metavar="FUNCTION",
+			help="function to run")
+
+	(options, args) = parser.parse_args()
+
+	return options
 
 def main():
+	options = cmdline()
 
-	if len(sys.argv) == 2:
+	if options.func is not None:
 		try:
 			os.mkdir(OUTPATH)
 			os.mkdir(OUTPATH + "/dat")
 		except OSError:
 			pass
 
-		cmd = sys.argv[1]
-		globals()[cmd]()
+		f = open(OUTPATH + "/args", "w")
+		f.write(' '.join(sys.argv) + '\n')
+		f.close()
+
+		globals()[options.func]()
 
 		open(OUTPATH + "/done", "w")
 	else:
-		print "USAGE: %s <func>" % (sys.argv[0],)
+		print "Specify function to run with -f"
 		print
 		print "available functions:"
 		funcs = []

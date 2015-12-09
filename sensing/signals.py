@@ -156,6 +156,14 @@ class SimulatedIEEEMicSoftSpeaker:
 
 		return x
 
+class SimulatedNoise:
+	SLUG = "noise"
+
+	def get(self, N, fc, fs, Pgen):
+		A = 10.**(Pgen/20.)
+		x = numpy.random.normal(loc=0, scale=A, size=N)
+		return x
+
 class AddSpuriousCosine:
 	def __init__(self, signal, fn, Pn):
 		self.signal = signal

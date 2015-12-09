@@ -64,9 +64,7 @@ def run_simulation_(kwargs):
 		traceback.print_exc()
 		raise
 
-def do_sim_campaign_gencl(fs, Ns, gencl):
-
-	Pgenl = [None] + range(-140, -100, 1)
+def do_sim_campaign_gencl(fs, Ns, gencl, Pgenl):
 
 	fc = 864e6
 
@@ -120,6 +118,7 @@ def ex_sim_spurious_campaign_mic():
 
 	Ns = 25000
 	fs = 2e6
+	Pgenl = [None] + range(-140, -100, 1)
 
 	fnl = [
 		3.*fs/8.,
@@ -140,12 +139,13 @@ def ex_sim_spurious_campaign_mic():
 		for fn in fnl:
 			gencl.append(AddSpuriousCosine(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
 
-	do_sim_campaign_gencl(fs, Ns, gencl)
+	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
 
 def ex_sim_gaussian_noise_campaign_mic():
 
 	Ns = 25000
 	fs = 2e6
+	Pgenl = [None] + range(-140, -100, 1)
 
 	gencl = []
 	gencl.append(SimulatedIEEEMicSoftSpeaker())
@@ -154,13 +154,14 @@ def ex_sim_gaussian_noise_campaign_mic():
 	for Pn in Pnl:
 		gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=Pn))
 
-	do_sim_campaign_gencl(fs, Ns, gencl)
+	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
 
 
 def ex_sim_oversample_campaign_mic():
 
 	Ns = 25000
 	fs = 2e6
+	Pgenl = [None] + range(-140, -100, 1)
 
 	#kl = range(1, 9)
 	kl = [1]
@@ -169,17 +170,31 @@ def ex_sim_oversample_campaign_mic():
 	for k in kl:
 		gencl.append(Divide(Oversample(SimulatedIEEEMicSoftSpeaker(), k=k), Nb=Ns*4))
 
-	do_sim_campaign_gencl(fs, Ns, gencl)
+	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
 
 def ex_sim_campaign_mic():
 
 	Ns = 25000
 	fs = 2e6
+	Pgenl = [None] + range(-140, -100, 1)
 
 	gencl = []
 	gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=-100))
 
-	do_sim_campaign_gencl(fs, Ns, gencl)
+	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
+
+def ex_sim_campaign_noise():
+
+	Ns = 25000
+	fs = 2e6
+	Pgenl = range(-100, -60, 1)
+
+
+	gencl = []
+	gencl.append(SimulatedNoise())
+
+	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
+
 
 def main():
 

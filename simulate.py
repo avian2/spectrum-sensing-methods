@@ -56,6 +56,8 @@ def run_simulation(genc, det, Np, Ns, fc, fs, Pgen):
 			gammal[i] = func(x0)
 
 		path = get_path(genc, func, funcname, Ns, fs, Pgen)
+
+		assert not os.path.exists(path)
 		numpy.savetxt(path, gammal)
 
 def run_simulation_(kwargs):

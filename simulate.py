@@ -188,6 +188,8 @@ def cmdline():
 	parser = OptionParser()
 	parser.add_option("-f", dest="func", metavar="FUNCTION",
 			help="function to run")
+	parser.add_option("-o", dest="outpath", metavar="PATH",
+			help="output directory")
 	parser.add_option("-p", dest="nproc", metavar="NPROC", type="int", default=4,
 			help="number of processes to run")
 	parser.add_option("-s", dest="slice", metavar="SLICE", default="0:1",
@@ -239,9 +241,15 @@ def run(task_list, options):
 	#run_simulation_(task_list[0])
 
 def main():
+	global OUTPATH
+
 	options = cmdline()
 
 	if options.func is not None:
+
+		if options.outpath:
+			OUTPATH = options.outpath
+
 		try:
 			os.mkdir(OUTPATH)
 			os.mkdir(OUTPATH + "/dat")

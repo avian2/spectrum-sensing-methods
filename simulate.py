@@ -65,7 +65,7 @@ def run_simulation_(kwargs):
 		traceback.print_exc()
 		raise
 
-def do_sim_campaign_gencl(fs, Ns, gencl, Pgenl):
+def make_sim_campaign_gencl_task_list(fs, Ns, gencl, Pgenl):
 
 	fc = 864e6
 
@@ -99,21 +99,7 @@ def do_sim_campaign_gencl(fs, Ns, gencl, Pgenl):
 				'Pgen': Pgen
 			})
 
-	pool = Pool(processes=5)
-
-
-	widgets = [ progressbar.Percentage(), ' ', progressbar.Bar(), ' ', progressbar.ETA() ] 
-	pbar = progressbar.ProgressBar(widgets=widgets, maxval=len(task_list)-1)
-	pbar.start()
-
-	for i, v in enumerate(pool.imap_unordered(run_simulation_, task_list)):
-	#for i, v in enumerate(itertools.imap(run_simulation_, task_list)):
-		pbar.update(i)
-
-	pbar.finish()
-	print
-
-	#run_simulation_(task_list[0])
+	return task_list
 
 def ex_sim_spurious_campaign_mic():
 
@@ -140,7 +126,7 @@ def ex_sim_spurious_campaign_mic():
 		for fn in fnl:
 			gencl.append(AddSpuriousCosine(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
 
-	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
+	return make_sim_campaign_gencl_task_list(fs, Ns, gencl, Pgenl)
 
 def ex_sim_gaussian_noise_campaign_mic():
 
@@ -155,7 +141,7 @@ def ex_sim_gaussian_noise_campaign_mic():
 	for Pn in Pnl:
 		gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=Pn))
 
-	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
+	return make_sim_campaign_gencl_task_list(fs, Ns, gencl, Pgenl)
 
 
 def ex_sim_oversample_campaign_mic():
@@ -171,7 +157,7 @@ def ex_sim_oversample_campaign_mic():
 	for k in kl:
 		gencl.append(Divide(Oversample(SimulatedIEEEMicSoftSpeaker(), k=k), Nb=Ns*4))
 
-	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
+	return make_sim_campaign_gencl_task_list(fs, Ns, gencl, Pgenl)
 
 def ex_sim_campaign_mic():
 
@@ -182,7 +168,7 @@ def ex_sim_campaign_mic():
 	gencl = []
 	gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=-100))
 
-	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
+	return make_sim_campaign_gencl_task_list(fs, Ns, gencl, Pgenl)
 
 def ex_sim_campaign_noise():
 
@@ -194,7 +180,7 @@ def ex_sim_campaign_noise():
 	gencl = []
 	gencl.append(SimulatedNoise())
 
-	do_sim_campaign_gencl(fs, Ns, gencl, Pgenl)
+	return make_sim_campaign_gencl_task_list(fs, Ns, gencl, Pgenl)
 
 def cmdline():
 	parser = OptionParser()
@@ -204,6 +190,22 @@ def cmdline():
 	(options, args) = parser.parse_args()
 
 	return options
+
+def run(task_list, options):
+	pool = Pool(processes=5)
+
+	widgets = [ progressbar.Percentage(), ' ', progressbar.Bar(), ' ', progressbar.ETA() ] 
+	pbar = progressbar.ProgressBar(widgets=widgets, maxval=len(task_list)-1)
+	pbar.start()
+
+	for i, v in enumerate(pool.imap_unordered(run_simulation_, task_list)):
+	#for i, v in enumerate(itertools.imap(run_simulation_, task_list)):
+		pbar.update(i)
+
+	pbar.finish()
+	print
+
+	#run_simulation_(task_list[0])
 
 def main():
 	options = cmdline()
@@ -219,7 +221,8 @@ def main():
 		f.write(' '.join(sys.argv) + '\n')
 		f.close()
 
-		globals()[options.func]()
+		task_list = globals()[options.func]()
+		run(task_list, options)
 
 		open(OUTPATH + "/done", "w")
 	else:

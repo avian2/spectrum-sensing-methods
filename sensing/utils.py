@@ -47,9 +47,8 @@ def fam(x, Np, L, N=None):
 	f = np.tile(f, (P,1))
 	t = np.tile(t.reshape(P,1), (1, Np))
 
-	XD = XF1 * np.exp(-1j*2*np.pi*f*t)
-
-	del XF1
+	XD = XF1
+	XD *= np.exp(-1j*2*np.pi*f*t)
 
 	# calculating conjugate products, second FFT and the final matrix
 	Sx = np.zeros((Np, 2*N), dtype=complex)

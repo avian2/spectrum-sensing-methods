@@ -128,8 +128,8 @@ class CyclostationaryDetector:
 	def SCF(self, x):
 		return fam(x, self.Np, self.L)
 
-class CAMDetector(CyclostationaryDetector):
-	SLUG = 'cam'
+class SCFDetector(CyclostationaryDetector):
+	SLUG = 'scf'
 
 	def __call__(self, x):
 		Sx = self.SCF(x)

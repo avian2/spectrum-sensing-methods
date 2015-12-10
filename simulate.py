@@ -86,9 +86,7 @@ def make_sim_campaign_gencl(fsNsl, gencl, Pgenl):
 	#		det.append((c(L=L), "l%d" % (L,)))
 
 	for Np in [64, 128]:
-		det += [
-			(CAMDetector(Np=Np, L=Np/4), "Np%d" % (Np,)),
-			(CANDetector(Np=Np, L=Np/4), "Np%d" % (Np,)) ]
+		det += [ (CAMDetector(Np=Np, L=Np/4), "Np%d" % (Np,)) ]
 
 	task_list = []
 	for Pgen in Pgenl:
@@ -232,7 +230,7 @@ def run(task_list, options):
 	task_list = make_slice(task_list, options)
 
 	widgets = [ progressbar.Percentage(), ' ', progressbar.Bar(), ' ', progressbar.ETA() ] 
-	pbar = progressbar.ProgressBar(widgets=widgets, maxval=len(task_list)-1)
+	pbar = progressbar.ProgressBar(widgets=widgets, maxval=len(task_list))
 	pbar.start()
 
 	for i, v in enumerate(pool.imap_unordered(run_simulation_, task_list)):

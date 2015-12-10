@@ -50,29 +50,19 @@ def fam(x, Np, L, N=None):
 	XD = XF1 * np.exp(-1j*2*np.pi*f*t)
 
 	del XF1
-	
-	# calculating conjugate products
-	
-	XF2 = np.empty((Np, Np, P), dtype=complex)
+
+	# calculating conjugate products, second FFT and the final matrix
+	Sx = np.zeros((Np, 2*N), dtype=complex)
+	Mp = N/Np/2
 
 	for k in range(Np):
 		for l in range(Np):
-			XF2[k,l,:] = np.fft.fft(XD[:,k]*np.conjugate(XD[:,l]))
-	XF2 = np.fft.fftshift(XF2, axes=2)
-	XF2 /= P
+			XF2 = np.fft.fft(XD[:,k]*np.conjugate(XD[:,l]))
+			XF2 = np.fft.fftshift(XF2)
+			XF2 /= P
 
-	del XD
-	
-	# constructing the final matrix
-	Sx = np.zeros((Np, 2*N), dtype=complex)
-
-	Mp = N/Np/2
-	Pp = P/2
-        for k in xrange(Np):
-            for l in xrange(Np):
-
-                i = (k+l)/2.
-                a = ((k-l)/float(Np) + 1.)*N
-                Sx[i,a-Mp:a+Mp] = XF2[k,l,Pp-Mp:Pp+Mp]
+			i = (k+l)/2.
+			a = ((k-l)/float(Np) + 1.)*N
+			Sx[i,a-Mp:a+Mp] = XF2[P/2-Mp:P/2+Mp]
 
 	return Sx

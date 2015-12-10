@@ -170,6 +170,7 @@ class AddSpuriousCosine:
 		self.An = 10.**(Pn/20.)
 		self.fn = fn
 		self.SLUG = "%s_spurious_%dkhz_%ddbm" % (signal.SLUG, fn/1e3, Pn)
+		self.SLUG = self.SLUG.replace('-','m')
 
 	def _get(self, N, fs):
 		ph = 2. * numpy.pi * numpy.arange(N) * self.fn / fs
@@ -188,6 +189,7 @@ class AddGaussianNoise:
 		self.signal = signal
 		self.An = 10.**(Pn/20.)
 		self.SLUG = "%s_gaussian_noise_%ddbm" % (signal.SLUG, Pn)
+		self.SLUG = self.SLUG.replace('-','m')
 
 	def get(self, N, fc, fs, Pgen):
 		xs = self.signal.get(N, fc, fs, Pgen)

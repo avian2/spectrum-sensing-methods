@@ -18,6 +18,9 @@ Contents of this repository:
     have a fast enough hard drive, you can change the TMPDIR value at
     the top of the source to some other path.
 
+ - simulate.py
+
+    Python script for performing simulations.
 
  - sensing/methods.py
 

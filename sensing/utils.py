@@ -28,11 +28,16 @@ def fam(x, Np, L, N=None):
 	w /= np.sqrt(np.sum(w**2))
 
 	xw = xs2 * np.tile(w, (P,1))
+
+	del xs2
+	del w
 	
 	# first FFT
 	
 	XF1 = np.fft.fft(xw, axis=1)
 	XF1 = np.fft.fftshift(XF1, axes=1)
+
+	del xw
 	
 	# calculating complex demodulates
 	
@@ -43,20 +48,20 @@ def fam(x, Np, L, N=None):
 	t = np.tile(t.reshape(P,1), (1, Np))
 
 	XD = XF1 * np.exp(-1j*2*np.pi*f*t)
+
+	del XF1
 	
 	# calculating conjugate products
 	
-	XM = np.empty((Np, Np, P), dtype=complex)
+	XF2 = np.empty((Np, Np, P), dtype=complex)
 
 	for k in range(Np):
 		for l in range(Np):
-			XM[k,l,:] = XD[:,k]*np.conjugate(XD[:,l])
-			
-	# second FFT
-	
-	XF2 = np.fft.fft(XM, axis=2)
+			XF2[k,l,:] = np.fft.fft(XD[:,k]*np.conjugate(XD[:,l]))
 	XF2 = np.fft.fftshift(XF2, axes=2)
 	XF2 /= P
+
+	del XD
 	
 	# constructing the final matrix
 	Sx = np.zeros((Np, 2*N), dtype=complex)

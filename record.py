@@ -8,7 +8,7 @@ from sensing.methods import *
 from sensing.signals import *
 import sys
 
-TEMPDIR="/tmp/mem"
+TEMPDIR="/tmp"
 
 class MeasurementProcess(Process):
 	def __init__(self, genc, inp, extra=250000):
@@ -241,7 +241,7 @@ class GammaProcess(Process):
 			kwargs['gammal'] = gammal
 			self.out.put(kwargs)
 
-def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
+def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	Np = 1000
 
 	extra = Ns*5
@@ -256,9 +256,6 @@ def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	mp = measurement_cls(genc, inp, extra=extra)
 	mp.start()
 
-	gp = GammaProcess(mp.out, Ns, (d for d, name in det), extra=extra)
-	gp.start()
-
 	for Pgen in Pgenl:
 		inp.put({'Ns': Ns,
 			'Np': Np,
@@ -267,61 +264,46 @@ def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 			'Pgen': Pgen/10. if Pgen is not None else None})
 
 	for Pgen in Pgenl:
-		kwargs = gp.out.get()
-
+		kwargs = mp.out.get()
 		if kwargs['Pgen'] is None:
-			suf = 'off.dat'
+			suf = 'off.npy'
 		else:
 			m = '%.1f' % (kwargs['Pgen'],)
 			m = m.replace('-','m')
 			m = m.replace('.','_')
 
-			suf = '%sdbm.dat' % (m,)
+			suf = '%sdbm.npy' % (m,)
 
-		for i, (d, name) in enumerate(det):
-			path = '%s/%s_%s_fs%dmhz_Ns%dks_' % (
-					out_path,
-					mp.SLUG,
-					genc.SLUG, fs/1e6, Ns/1000)
-			path += '%s_' % (d.SLUG,)
-			if name:
-				path += name + "_"
+		path = '%s/%s_%s_fs%dmhz_Ns%dks_' % (
+				out_path,
+				mp.SLUG,
+				genc.SLUG, fs/1e6, Ns/1000)
+		path += suf
 
-			path += suf
+		x = numpy.fromfile(kwargs['path'],
+					dtype=numpy.dtype(numpy.complex64))
 
-			numpy.savetxt(path, kwargs['gammal'][i,:])
+		# skip leading samples - they are typically not useful
+		# because they happen while ADC is settling in the receiver
+		# and other transition effects.
+		x = x[mp.extra:]
+
+		numpy.save(path, x)
 
 	mp.inp.put(None)
 	mp.join()
 
-	gp.inp.put(None)
-	gp.join()
-
-def do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, measurement_cls):
+def do_sampling_campaign_generator_det(genc, Pgenl, fc, fsNs, measurement_cls):
 
 	out_path = "out"
 
 	for fs, Ns in fsNs:
-		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
+		do_campaign(genc, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
 def do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls):
 
-	det = [	(EnergyDetector(), None) ]
-
-	cls = [	CAVDetector,
-		CFNDetector,
-		MACDetector,
-		MMEDetector,
-		EMEDetector,
-		AGMDetector,
-		METDetector ]
-
-	for L in xrange(5, 25, 5):
-		for c in cls:
-			det.append((c(L=L), "l%d" % (L,)))
-
-	do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, measurement_cls)
+	do_sampling_campaign_generator_det(genc, Pgenl, fc, fsNs, measurement_cls)
 
 def do_usrp_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 	fsNs = [	(1e6, 25000),
@@ -351,8 +333,6 @@ def ex_usrp_campaign_dc():
 
 	fc = 864e6
 
-	det = [	(EnergyDetector(), None) ]
-
 	Pgenl = [ -600 ]
 
 	for dc in xrange(10, 101, 2):
@@ -360,7 +340,7 @@ def ex_usrp_campaign_dc():
 		dcf = dc * 1e-2
 		genc = CW(dc=dcf)
 
-		do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, USRPMeasurementProcess)
+		do_sampling_campaign_generator_det(genc, Pgenl, fc, fsNs, USRPMeasurementProcess)
 
 
 def do_sneismtv_campaign_generator(genc, Pgenl):

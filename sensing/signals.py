@@ -273,8 +273,7 @@ class LoadMeasurement:
 
 		assert len(x) >= N
 
-		# FIXME: should do real() at record time already...
-		return x.real[:N]
+		return x[:N]
 
 def main():
 	try:

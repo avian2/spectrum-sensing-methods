@@ -288,7 +288,7 @@ def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 		# and other transition effects.
 		x = x[mp.extra:]
 
-		numpy.save(path, x)
+		numpy.save(path, x.real)
 
 		os.unlink(kwargs['path'])
 

@@ -290,6 +290,8 @@ def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 
 		numpy.save(path, x)
 
+		os.unlink(kwargs['path'])
+
 	mp.inp.put(None)
 	mp.join()
 

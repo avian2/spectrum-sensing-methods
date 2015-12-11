@@ -3,7 +3,7 @@ import datetime
 from multiprocessing import Process, Queue
 import os
 import tempfile
-import numpy
+import numpy as np
 from sensing.methods import *
 from sensing.siggen import *
 import sys
@@ -87,7 +87,7 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 		sys.stdout.write("recording %d samples at %f Hz\n" % (Ns*Np2, fc))
 		sys.stdout.write("device config: %s\n" % (sample_config.config.name,))
 
-		x = numpy.empty(shape=Ns*Np2)
+		x = np.empty(shape=Ns*Np2)
 		sample_config.i = 0
 
 		def cb(sample_config, data):
@@ -113,7 +113,7 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 
 		# ok, this expects [self.extra][Ns*Np]
 		N = Ns*Np + self.extra
-		xa = numpy.empty(shape=N, dtype=numpy.dtype(numpy.complex64))
+		xa = np.empty(shape=N, dtype=np.dtype(np.complex64))
 		xa[:self.extra] = x[:self.extra]
 		xa[self.extra:] = x[-Ns*Np:]
 
@@ -170,7 +170,7 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 		handle, path = tempfile.mkstemp(dir=TEMPDIR)
 		os.close(handle)
 
-		xa = numpy.array(x, dtype=numpy.dtype(numpy.complex64))
+		xa = np.array(x, dtype=np.dtype(np.complex64))
 		xa.tofile(path)
 
 		return path
@@ -187,7 +187,7 @@ class SimulatedMeasurementProcess(MeasurementProcess):
 		handle, path = tempfile.mkstemp(dir=TEMPDIR)
 		os.close(handle)
 
-		xa = numpy.array(x, dtype=numpy.dtype(numpy.complex64))
+		xa = np.array(x, dtype=np.dtype(np.complex64))
 		xa.tofile(path)
 
 		return path
@@ -215,8 +215,8 @@ class GammaProcess(Process):
 
 			path = kwargs.pop('path')
 
-			xl = numpy.fromfile(path,
-					dtype=numpy.dtype(numpy.complex64))
+			xl = np.fromfile(path,
+					dtype=np.dtype(np.complex64))
 
 			# skip leading samples - they are typically not useful
 			# because they happen while ADC is settling in the receiver
@@ -229,7 +229,7 @@ class GammaProcess(Process):
 
 			Np = len(jl)
 
-			gammal = numpy.empty(shape=(len(self.func), Np))
+			gammal = np.empty(shape=(len(self.func), Np))
 
 			for k, func in enumerate(self.func):
 				for i, j in enumerate(jl):
@@ -280,15 +280,15 @@ def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 				genc.SLUG, fs/1e6, Ns/1000)
 		path += suf
 
-		x = numpy.fromfile(kwargs['path'],
-					dtype=numpy.dtype(numpy.complex64))
+		x = np.fromfile(kwargs['path'],
+					dtype=np.dtype(np.complex64))
 
 		# skip leading samples - they are typically not useful
 		# because they happen while ADC is settling in the receiver
 		# and other transition effects.
 		x = x[mp.extra:]
 
-		numpy.save(path, x.real)
+		np.save(path, x.real)
 
 		os.unlink(kwargs['path'])
 

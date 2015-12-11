@@ -1,6 +1,6 @@
 from vesna.rftest import usbtmc
 import sys
-import numpy
+import numpy as np
 
 class GeneratorControl: pass
 
@@ -29,23 +29,23 @@ class ARBSMBVGeneratorControl(SMBVGeneratorControl):
 	def _get_wv_data(self, fs, x):
 
 		MAX = 0x7fff
-		xs = numpy.clip(x, -1., 1.)*MAX
+		xs = np.clip(x, -1., 1.)*MAX
 
-		x0 = numpy.empty(len(xs)*2, numpy.dtype('<i2'))
-		x0[::2] = numpy.real(xs)
-		x0[1::2] = numpy.imag(xs)
+		x0 = np.empty(len(xs)*2, np.dtype('<i2'))
+		x0[::2] = np.real(xs)
+		x0[1::2] = np.imag(xs)
 
-		xs2 = numpy.real(xs*numpy.conjugate(xs))
-		rms_offs = 10.*numpy.log10(MAX**2/numpy.mean(xs2))
-		peak_offs = 10.*numpy.log10(MAX**2/numpy.max(xs2))
+		xs2 = np.real(xs*np.conjugate(xs))
+		rms_offs = 10.*np.log10(MAX**2/np.mean(xs2))
+		peak_offs = 10.*np.log10(MAX**2/np.max(xs2))
 
 		assert rms_offs >= 0
 
 		bin_data = x0.data
 
 		crc = 0xa50f74ff+1
-		crc ^= numpy.bitwise_xor.reduce(
-				numpy.frombuffer(bin_data, numpy.dtype('<u4')))
+		crc ^= np.bitwise_xor.reduce(
+				np.frombuffer(bin_data, np.dtype('<u4')))
 
 		assert len(bin_data) % 4 == 0
 
@@ -83,7 +83,7 @@ class Noise(ARBSMBVGeneratorControl):
 		N = 500000
 		fs = 50000000
 
-		x = numpy.random.normal(scale=0.19, size=N*2)
+		x = np.random.normal(scale=0.19, size=N*2)
 		noise = x[::2] + complex(0, 1)*x[1::2]
 
 		self.set_arb_waveform(fs, noise)
@@ -106,7 +106,7 @@ class CW(ARBSMBVGeneratorControl):
 		N1 = int(N * self.dc)
 		N0 = N - N1
 
-		x = numpy.concatenate( (numpy.ones(N1), numpy.zeros(N0)) )
+		x = np.concatenate( (np.ones(N1), np.zeros(N0)) )
 		assert len(x) == N
 
 		self.set_arb_waveform(fs, x)

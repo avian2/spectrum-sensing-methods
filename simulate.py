@@ -3,7 +3,7 @@ import datetime
 from multiprocessing import Pool, Process, Queue
 import os
 import tempfile
-import numpy
+import numpy as np
 from sensing.methods import *
 from sensing.signals import *
 import sys
@@ -50,7 +50,7 @@ def run_simulation(genc, det, Np, Ns, fc, fs, Pgen):
 	jl = range(0, N, Ns)
 	assert len(jl) == Np
 
-	gammal = numpy.empty(shape=Np)
+	gammal = np.empty(shape=Np)
 	for func, funcname in det:
 
 		for i, j in enumerate(jl):
@@ -60,7 +60,7 @@ def run_simulation(genc, det, Np, Ns, fc, fs, Pgen):
 		path = get_path(genc, func, funcname, Ns, fs, Pgen)
 
 		assert not os.path.exists(path)
-		numpy.savetxt(path, gammal)
+		np.savetxt(path, gammal)
 
 def run_simulation_(kwargs):
 	try:

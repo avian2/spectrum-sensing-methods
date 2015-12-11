@@ -14,6 +14,8 @@ from optparse import OptionParser
 
 OUTPATH=datetime.datetime.now().strftime("simout-%Y%m%d-%H%M%S")
 
+Np = 10
+
 def get_path(genc, func, funcname, Ns, fs, Pgen):
 	mp_slug = "sim"
 
@@ -85,8 +87,8 @@ def make_sim_campaign_gencl(fsNsl, gencl, Pgenl):
 	#	for c in cls:
 	#		det.append((c(L=L), "l%d" % (L,)))
 
-	for Np in [64, 128]:
-		det += [ (SCFDetector(Np=Np, L=Np/4), "Np%d" % (Np,)) ]
+	for scfNp in [64, 128]:
+		det += [ (SCFDetector(Np=scfNp, L=scfNp/4), "Np%d" % (scfNp,)) ]
 
 	task_list = []
 	for Pgen in Pgenl:
@@ -95,7 +97,7 @@ def make_sim_campaign_gencl(fsNsl, gencl, Pgenl):
 				task_list.append({
 					'genc': genc,
 					'det': det,
-					'Np': 200,
+					'Np': Np,
 					'Ns': Ns,
 					'fc': fc,
 					'fs': fs,
@@ -169,6 +171,18 @@ def ex_sim_campaign_mic():
 
 	gencl = []
 	gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=-100))
+
+	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
+
+def ex_calc_campaign_mic():
+
+	fsNs = [	(1e6, 25000),
+			#(2e6, 25000),
+			#(10e6, 100000),
+		]
+	Pgenl = [None] + range(-100, -70, 1)
+
+	gencl = [ LoadMeasurement("samples/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
 
 	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
 

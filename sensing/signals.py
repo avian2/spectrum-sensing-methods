@@ -2,6 +2,7 @@ from vesna.rftest import usbtmc
 import sys
 import numpy
 import scipy.signal
+import os
 
 class GeneratorControl: pass
 
@@ -245,6 +246,35 @@ class Divide:
 			x[n*self.Nb:(n+1)*self.Nb] = self.signal.get(self.Nb, *args, **kwargs)
 
 		return x
+
+class LoadMeasurement:
+	def __init__(self, template, Np):
+		self.template = template
+		self.Np = Np
+
+		bn = os.path.basename(template)
+		self.SLUG = '_'.join(bn.split('_')[:2])
+
+	def get(self, N, fc, fs, Pgen):
+
+		if Pgen is None:
+			m = "off"
+		else:
+			m = '%.1fdbm' % (Pgen,)
+			m = m.replace('-','m')
+			m = m.replace('.','_')
+
+		path = self.template % {
+				'Pgen': m,
+				'fs': "%.0f" % (fs/1e6),
+				'Ns': N/self.Np/1000 }
+
+		x = numpy.load(path)
+
+		assert len(x) >= N
+
+		# FIXME: should do real() at record time already...
+		return x.real[:N]
 
 def main():
 	try:

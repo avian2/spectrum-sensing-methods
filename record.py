@@ -5,7 +5,7 @@ import os
 import tempfile
 import numpy
 from sensing.methods import *
-from sensing.signals import *
+from sensing.siggen import *
 import sys
 
 TEMPDIR="/tmp"

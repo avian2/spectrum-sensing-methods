@@ -247,15 +247,22 @@ class Divide:
 		return x
 
 def main():
-	slug = sys.argv[1]
+	try:
+		slug = sys.argv[1]
+	except IndexError:
+		print "Available signals:"
 
-	for name, value in globals().iteritems():
-		if hasattr(value, "SLUG") and value.SLUG == slug:
-			print "Using GeneratorControl class", name
-			value()
-			return
+		for name, value in globals().iteritems():
+			if hasattr(value, "SLUG"):
+				print "   %s (%s)" % (value.SLUG, name)
+	else:
+		for name, value in globals().iteritems():
+			if hasattr(value, "SLUG") and value.SLUG == slug:
+				print "Using GeneratorControl class", name
+				value()
+				return
 
-	print "class with slug", slug, "not found!"
+		print "class with slug", slug, "not found!"
 
 if __name__ == "__main__":
 	main()

@@ -192,8 +192,8 @@ def ex_sim_campaign_mic():
 def ex_calc_campaign_mic():
 
 	fsNs = [	(1e6, 25000),
-			#(2e6, 25000),
-			#(10e6, 100000),
+			(2e6, 25000),
+			(10e6, 100000),
 		]
 	Pgenl = [None] + range(-100, -70, 1)
 
@@ -225,6 +225,18 @@ def ex_sim_campaign_noise():
 	gencl.append(SimulatedNoise())
 
 	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
+
+def ex_calc_campaign_noise():
+
+	fsNs = [	(1e6, 25000),
+			(2e6, 25000),
+			(10e6, 100000),
+		]
+	Pgenl = [None] + range(-70, -10, 2)
+
+	gencl = [ LoadMeasurement("samples-usrp_campaign_noise/usrp_noise_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
+
+	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
 
 def cmdline():
 	parser = OptionParser()

@@ -7,6 +7,7 @@ import numpy as np
 from sensing.methods import *
 from sensing.siggen import *
 import sys
+import time
 
 TEMPDIR="/tmp"
 
@@ -129,11 +130,28 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 
 	SLUG = "sneismtv"
 
+	WARMUP_MIN = 1
+
 	def setup(self):
 		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
 
 		config_list = self.sensor.get_config_list()
 		self.config = config_list.get_config(0, 0)
+
+		self.warmup()
+
+	def warmup(self):
+		sample_config = self.config.get_sample_config(850e6, 1000)
+
+		start_time = time.time()
+		stop_time = start_time + self.WARMUP_MIN*60.
+
+		def cb(sample_config, data):
+			return time.time() < stop_time
+
+		sys.stdout.write("begin warmup\n")
+		self.sensor.sample_run(sample_config, cb)
+		sys.stdout.write("end warmup\n")
 
 	def measure(self, Ns, Np, fc, fs, Pgen):
 

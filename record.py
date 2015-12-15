@@ -264,7 +264,7 @@ def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 
 def do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls):
 
-	out_path = "out"
+	out_path = "samples-usrp"
 
 	for fs, Ns in fsNs:
 		do_campaign(genc, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
@@ -314,7 +314,7 @@ def do_sneismtv_campaign_generator(genc, Pgenl):
 
 	measurement_cls = SNEISMTVMeasurementProcess
 
-	out_path = "out"
+	out_path = "samples-sneismtv"
 
 	Ns = 3676
 

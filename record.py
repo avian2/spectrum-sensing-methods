@@ -353,13 +353,9 @@ def do_sneismtv_campaign_generator(genc, Pgenl):
 
 	out_path = "out"
 
-	det = []
-	Ns_list = [ 3676, 1838, 1471 ]
+	Ns = 3676
 
-	for Ns in Ns_list:
-		det.append((SNEISMTVDetector(N=Ns), "n%d" % (Ns,)))
-
-	do_campaign(genc, det, fc=fc, fs=0, Ns=max(Ns_list), Pgenl=Pgenl, out_path=out_path,
+	do_campaign(genc, fc=fc, fs=0, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
 def ex_sneismtv_campaign_dc():

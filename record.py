@@ -262,17 +262,13 @@ def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	mp.inp.put(None)
 	mp.join()
 
-def do_sampling_campaign_generator_det(genc, Pgenl, fc, fsNs, measurement_cls):
+def do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls):
 
 	out_path = "out"
 
 	for fs, Ns in fsNs:
 		do_campaign(genc, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
-
-def do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls):
-
-	do_sampling_campaign_generator_det(genc, Pgenl, fc, fsNs, measurement_cls)
 
 def do_usrp_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 	fsNs = [	(1e6, 25000),
@@ -309,7 +305,7 @@ def ex_usrp_campaign_dc():
 		dcf = dc * 1e-2
 		genc = CW(dc=dcf)
 
-		do_sampling_campaign_generator_det(genc, Pgenl, fc, fsNs, USRPMeasurementProcess)
+		do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, USRPMeasurementProcess)
 
 
 def do_sneismtv_campaign_generator(genc, Pgenl):

@@ -1,10 +1,8 @@
 import subprocess
-import datetime
 from multiprocessing import Process, Queue
 import os
 import tempfile
 import numpy as np
-from sensing.methods import *
 from sensing.siggen import *
 import sys
 import time
@@ -209,55 +207,6 @@ class SimulatedMeasurementProcess(MeasurementProcess):
 		xa.tofile(path)
 
 		return path
-
-class GammaProcess(Process):
-	def __init__(self, inp, Ns, func, extra=250000):
-		Process.__init__(self)
-
-		self.inp = inp
-		self.out = Queue()
-
-		self.Ns = Ns
-		self.extra = extra
-
-		try:
-			self.func = tuple(func)
-		except TypeError:
-			self.func = (func,)
-
-	def run(self):
-		while True:
-			kwargs = self.inp.get()
-			if kwargs is None:
-				return
-
-			path = kwargs.pop('path')
-
-			xl = np.fromfile(path,
-					dtype=np.dtype(np.complex64))
-
-			# skip leading samples - they are typically not useful
-			# because they happen while ADC is settling in the receiver
-			# and other transition effects.
-			xl = xl[self.extra:]
-
-			N = len(xl)
-
-			jl = range(0, N, self.Ns)
-
-			Np = len(jl)
-
-			gammal = np.empty(shape=(len(self.func), Np))
-
-			for k, func in enumerate(self.func):
-				for i, j in enumerate(jl):
-					x = xl.real[j:j+self.Ns]
-					gammal[k, i] = func(x)
-
-			os.unlink(path)
-
-			kwargs['gammal'] = gammal
-			self.out.put(kwargs)
 
 def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	Np = 1000

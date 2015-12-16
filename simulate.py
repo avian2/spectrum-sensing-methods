@@ -69,7 +69,24 @@ def run_simulation_(kwargs):
 		traceback.print_exc()
 		raise
 
-def make_sim_campaign_gencl(fsNsl, gencl, Pgenl):
+def make_campaign_det_gencl(fc, det, fsNsl, gencl, Pgenl):
+	task_list = []
+	for Pgen in Pgenl:
+		for fs, Ns in fsNsl:
+			for genc in gencl:
+				task_list.append({
+					'genc': genc,
+					'det': det,
+					'Np': Np,
+					'Ns': Ns,
+					'fc': fc,
+					'fs': fs,
+					'Pgen': Pgen
+				})
+
+	return task_list
+
+def make_sampling_campaign_gencl(fsNsl, gencl, Pgenl):
 
 	fc = 864e6
 
@@ -90,21 +107,19 @@ def make_sim_campaign_gencl(fsNsl, gencl, Pgenl):
 	for scfNp in [64, 128]:
 		det += [ (SCFDetector(Np=scfNp, L=scfNp/4), "Np%d" % (scfNp,)) ]
 
-	task_list = []
-	for Pgen in Pgenl:
-		for fs, Ns in fsNsl:
-			for genc in gencl:
-				task_list.append({
-					'genc': genc,
-					'det': det,
-					'Np': Np,
-					'Ns': Ns,
-					'fc': fc,
-					'fs': fs,
-					'Pgen': Pgen
-				})
+	return make_campaign_det_gencl(fc, det, fsNsl, gencl, Pgenl)
 
-	return task_list
+def make_sneismtv_campaign_gencl(fsNsl, gencl, Pgenl):
+
+	fc = 850e6
+
+	Ns_list = [ 3676, 1838, 1471 ]
+
+	det = []
+	for Ns in Ns_list:
+		det.append((SNEISMTVDetector(N=Ns), "n%d" % (Ns,)))
+
+	return make_campaign_det_gencl(fc, det, fsNsl, gencl, Pgenl)
 
 def ex_sim_spurious_campaign_mic():
 
@@ -130,7 +145,7 @@ def ex_sim_spurious_campaign_mic():
 		for fn in fnl:
 			gencl.append(AddSpuriousCosine(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
 
-	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
+	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
 
 def ex_sim_gaussian_noise_campaign_mic():
 
@@ -144,7 +159,7 @@ def ex_sim_gaussian_noise_campaign_mic():
 	for Pn in Pnl:
 		gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=Pn))
 
-	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
+	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
 
 
 def ex_sim_oversample_campaign_mic():
@@ -159,7 +174,7 @@ def ex_sim_oversample_campaign_mic():
 	for k in kl:
 		gencl.append(Divide(Oversample(SimulatedIEEEMicSoftSpeaker(), k=k), Nb=Ns*4))
 
-	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
+	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
 
 def ex_sim_campaign_mic():
 
@@ -172,7 +187,7 @@ def ex_sim_campaign_mic():
 	gencl = []
 	gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=-100))
 
-	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
+	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
 
 def ex_calc_campaign_mic():
 
@@ -184,7 +199,18 @@ def ex_calc_campaign_mic():
 
 	gencl = [ LoadMeasurement("samples/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
 
-	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
+	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
+
+def ex_calc_sneismtv_campaign_mic():
+
+	fsNs = [	(0, 3676),
+		]
+
+	Pgenl = [None] + range(-100, -70, 1)
+
+	gencl = [ LoadMeasurement("samples-sneismtv_campaign_mic/sneismtv_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
+
+	return make_sneismtv_campaign_gencl(fsNs, gencl, Pgenl)
 
 def ex_sim_campaign_noise():
 
@@ -198,7 +224,7 @@ def ex_sim_campaign_noise():
 	gencl = []
 	gencl.append(SimulatedNoise())
 
-	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
+	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
 
 def cmdline():
 	parser = OptionParser()

@@ -280,6 +280,8 @@ def run(task_list, options):
 	pool = Pool(processes=options.nproc)
 
 	task_list = make_slice(task_list, options)
+	if not task_list:
+		return
 
 	widgets = [ progressbar.Percentage(), ' ', progressbar.Bar(), ' ', progressbar.ETA() ] 
 	pbar = progressbar.ProgressBar(widgets=widgets, maxval=len(task_list))

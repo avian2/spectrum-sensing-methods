@@ -27,7 +27,7 @@ class EnergyDetector:
 		pass
 
 	def __call__(self, x):
-		return numpy.sum(x**2)
+		return numpy.dot(x, x)
 
 class CovarianceDetector:
 	def __init__(self, L=10):

@@ -38,6 +38,11 @@ Contents of this repository:
       the same dataset.
 
 
+ * benchmark.py
+
+   Python script for performing benchmarks.
+
+
  * sensing/methods.py
 
    Python module with implementations of several spectrum sensing

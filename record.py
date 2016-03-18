@@ -1,14 +1,13 @@
 import subprocess
-import datetime
 from multiprocessing import Process, Queue
 import os
 import tempfile
-import numpy
-from sensing.methods import *
-from sensing.signals import *
+import numpy as np
+from sensing.siggen import *
 import sys
+import time
 
-TEMPDIR="/tmp/mem"
+TEMPDIR="/tmp"
 
 class MeasurementProcess(Process):
 	def __init__(self, genc, inp, extra=250000):
@@ -87,7 +86,7 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 		sys.stdout.write("recording %d samples at %f Hz\n" % (Ns*Np2, fc))
 		sys.stdout.write("device config: %s\n" % (sample_config.config.name,))
 
-		x = numpy.empty(shape=Ns*Np2)
+		x = np.empty(shape=Ns*Np2)
 		sample_config.i = 0
 
 		def cb(sample_config, data):
@@ -113,7 +112,7 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 
 		# ok, this expects [self.extra][Ns*Np]
 		N = Ns*Np + self.extra
-		xa = numpy.empty(shape=N, dtype=numpy.dtype(numpy.complex64))
+		xa = np.empty(shape=N, dtype=np.dtype(np.complex64))
 		xa[:self.extra] = x[:self.extra]
 		xa[self.extra:] = x[-Ns*Np:]
 
@@ -129,11 +128,28 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 
 	SLUG = "sneismtv"
 
+	WARMUP_MIN = 1
+
 	def setup(self):
 		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
 
 		config_list = self.sensor.get_config_list()
 		self.config = config_list.get_config(0, 0)
+
+		self.warmup()
+
+	def warmup(self):
+		sample_config = self.config.get_sample_config(850e6, 1000)
+
+		start_time = time.time()
+		stop_time = start_time + self.WARMUP_MIN*60.
+
+		def cb(sample_config, data):
+			return time.time() < stop_time
+
+		sys.stdout.write("begin warmup\n")
+		self.sensor.sample_run(sample_config, cb)
+		sys.stdout.write("end warmup\n")
 
 	def measure(self, Ns, Np, fc, fs, Pgen):
 
@@ -170,7 +186,7 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 		handle, path = tempfile.mkstemp(dir=TEMPDIR)
 		os.close(handle)
 
-		xa = numpy.array(x, dtype=numpy.dtype(numpy.complex64))
+		xa = np.array(x, dtype=np.dtype(np.complex64))
 		xa.tofile(path)
 
 		return path
@@ -187,61 +203,12 @@ class SimulatedMeasurementProcess(MeasurementProcess):
 		handle, path = tempfile.mkstemp(dir=TEMPDIR)
 		os.close(handle)
 
-		xa = numpy.array(x, dtype=numpy.dtype(numpy.complex64))
+		xa = np.array(x, dtype=np.dtype(np.complex64))
 		xa.tofile(path)
 
 		return path
 
-class GammaProcess(Process):
-	def __init__(self, inp, Ns, func, extra=250000):
-		Process.__init__(self)
-
-		self.inp = inp
-		self.out = Queue()
-
-		self.Ns = Ns
-		self.extra = extra
-
-		try:
-			self.func = tuple(func)
-		except TypeError:
-			self.func = (func,)
-
-	def run(self):
-		while True:
-			kwargs = self.inp.get()
-			if kwargs is None:
-				return
-
-			path = kwargs.pop('path')
-
-			xl = numpy.fromfile(path,
-					dtype=numpy.dtype(numpy.complex64))
-
-			# skip leading samples - they are typically not useful
-			# because they happen while ADC is settling in the receiver
-			# and other transition effects.
-			xl = xl[self.extra:]
-
-			N = len(xl)
-
-			jl = range(0, N, self.Ns)
-
-			Np = len(jl)
-
-			gammal = numpy.empty(shape=(len(self.func), Np))
-
-			for k, func in enumerate(self.func):
-				for i, j in enumerate(jl):
-					x = xl.real[j:j+self.Ns]
-					gammal[k, i] = func(x)
-
-			os.unlink(path)
-
-			kwargs['gammal'] = gammal
-			self.out.put(kwargs)
-
-def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
+def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	Np = 1000
 
 	extra = Ns*5
@@ -256,9 +223,6 @@ def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	mp = measurement_cls(genc, inp, extra=extra)
 	mp.start()
 
-	gp = GammaProcess(mp.out, Ns, (d for d, name in det), extra=extra)
-	gp.start()
-
 	for Pgen in Pgenl:
 		inp.put({'Ns': Ns,
 			'Np': Np,
@@ -267,61 +231,44 @@ def do_campaign(genc, det, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 			'Pgen': Pgen/10. if Pgen is not None else None})
 
 	for Pgen in Pgenl:
-		kwargs = gp.out.get()
-
+		kwargs = mp.out.get()
 		if kwargs['Pgen'] is None:
-			suf = 'off.dat'
+			suf = 'off.npy'
 		else:
 			m = '%.1f' % (kwargs['Pgen'],)
 			m = m.replace('-','m')
 			m = m.replace('.','_')
 
-			suf = '%sdbm.dat' % (m,)
+			suf = '%sdbm.npy' % (m,)
 
-		for i, (d, name) in enumerate(det):
-			path = '%s/%s_%s_fs%dmhz_Ns%dks_' % (
-					out_path,
-					mp.SLUG,
-					genc.SLUG, fs/1e6, Ns/1000)
-			path += '%s_' % (d.SLUG,)
-			if name:
-				path += name + "_"
+		path = '%s/%s_%s_fs%dmhz_Ns%dks_' % (
+				out_path,
+				mp.SLUG,
+				genc.SLUG, fs/1e6, Ns/1000)
+		path += suf
 
-			path += suf
+		x = np.fromfile(kwargs['path'],
+					dtype=np.dtype(np.complex64))
 
-			numpy.savetxt(path, kwargs['gammal'][i,:])
+		# skip leading samples - they are typically not useful
+		# because they happen while ADC is settling in the receiver
+		# and other transition effects.
+		x = x[mp.extra:]
+
+		np.save(path, x.real)
+
+		os.unlink(kwargs['path'])
 
 	mp.inp.put(None)
 	mp.join()
 
-	gp.inp.put(None)
-	gp.join()
-
-def do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, measurement_cls):
-
-	out_path = "out"
-
-	for fs, Ns in fsNs:
-		do_campaign(genc, det, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
-				measurement_cls=measurement_cls)
-
 def do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls):
 
-	det = [	(EnergyDetector(), None) ]
+	out_path = "samples-usrp"
 
-	cls = [	CAVDetector,
-		CFNDetector,
-		MACDetector,
-		MMEDetector,
-		EMEDetector,
-		AGMDetector,
-		METDetector ]
-
-	for L in xrange(5, 25, 5):
-		for c in cls:
-			det.append((c(L=L), "l%d" % (L,)))
-
-	do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, measurement_cls)
+	for fs, Ns in fsNs:
+		do_campaign(genc, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
+				measurement_cls=measurement_cls)
 
 def do_usrp_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 	fsNs = [	(1e6, 25000),
@@ -351,8 +298,6 @@ def ex_usrp_campaign_dc():
 
 	fc = 864e6
 
-	det = [	(EnergyDetector(), None) ]
-
 	Pgenl = [ -600 ]
 
 	for dc in xrange(10, 101, 2):
@@ -360,7 +305,7 @@ def ex_usrp_campaign_dc():
 		dcf = dc * 1e-2
 		genc = CW(dc=dcf)
 
-		do_sampling_campaign_generator_det(genc, Pgenl, det, fc, fsNs, USRPMeasurementProcess)
+		do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, USRPMeasurementProcess)
 
 
 def do_sneismtv_campaign_generator(genc, Pgenl):
@@ -369,15 +314,11 @@ def do_sneismtv_campaign_generator(genc, Pgenl):
 
 	measurement_cls = SNEISMTVMeasurementProcess
 
-	out_path = "out"
+	out_path = "samples-sneismtv"
 
-	det = []
-	Ns_list = [ 3676, 1838, 1471 ]
+	Ns = 3676
 
-	for Ns in Ns_list:
-		det.append((SNEISMTVDetector(N=Ns), "n%d" % (Ns,)))
-
-	do_campaign(genc, det, fc=fc, fs=0, Ns=max(Ns_list), Pgenl=Pgenl, out_path=out_path,
+	do_campaign(genc, fc=fc, fs=0, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
 def ex_sneismtv_campaign_dc():

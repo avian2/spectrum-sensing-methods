@@ -2,6 +2,8 @@ import numpy
 import numpy.linalg
 import scipy.linalg
 
+from sensing.utils import fam
+
 class SNEISMTVDetector:
 	SLUG = 'ed'
 
@@ -25,7 +27,7 @@ class EnergyDetector:
 		pass
 
 	def __call__(self, x):
-		return numpy.sum(x**2)
+		return numpy.dot(x, x)
 
 class CovarianceDetector:
 	def __init__(self, L=10):
@@ -117,3 +119,36 @@ class METDetector(EigenvalueDetector):
 		lbd.sort()
 
 		return lbd[-1]/numpy.sum(lbd)
+
+class CyclostationaryDetector:
+	def __init__(self, Np, L):
+		self.Np = Np
+		self.L = L
+
+	def SCF(self, x):
+		return fam(x, self.Np, self.L)
+
+class SCFDetector(CyclostationaryDetector):
+	SLUG = 'scf'
+
+	def __call__(self, x):
+		Sx = self.SCF(x)
+
+		N = Sx.shape[1]/2
+		Sx0 = numpy.tile(Sx[:,N].reshape((self.Np, 1)), (1, 2*N))
+		T = numpy.abs(Sx/Sx0)
+
+		h = numpy.max([numpy.max(T[:,:N]), numpy.max(T[:,N+1:])])
+		return h
+
+class CANDetector(CyclostationaryDetector):
+	SLUG = 'can'
+
+	def __call__(self, x):
+		Sx = self.SCF(x)
+
+		N = Sx.shape[1]/2
+		T = numpy.abs(Sx)
+
+		h = numpy.max([numpy.max(T[:,:N]), numpy.max(T[:,N+1:])])
+		return h

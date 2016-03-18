@@ -19,6 +19,9 @@ def main():
 		for L in xrange(5, 25, 5):
 			methods.append("%s(L=%d)" % (c, L))
 
+	for scfNp in [64, 128]:
+		methods.append("SCFDetector(Np=%d, L=%d)" % (scfNp, scfNp/4))
+
 	for Ns in [25000, 50000, 100000]:
 		for method in methods:
 			tm = timeit.Timer(
@@ -31,7 +34,7 @@ det = sensing.methods.%s
 
 			stmt = "det(x)")
 
-			N = 1000
+			N = 100
 			r = tm.repeat(repeat=10, number=N)
 			t = min(r)/float(N)*1e6 # us/exc.
 

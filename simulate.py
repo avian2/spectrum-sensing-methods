@@ -14,7 +14,7 @@ from optparse import OptionParser
 
 OUTPATH=datetime.datetime.now().strftime("simout-%Y%m%d-%H%M%S")
 
-Np = 10
+Np = 1000
 
 def get_path(genc, func, funcname, Ns, fs, Pgen):
 	mp_slug = "sim"
@@ -237,6 +237,27 @@ def ex_calc_campaign_noise():
 	gencl = [ LoadMeasurement("samples-usrp_campaign_noise/usrp_noise_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
 
 	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
+
+def ex_calc_sneshtercov_campaign_unb():
+
+	fsNs = [	(2e6, 20) ]
+
+	fc = 700e6
+
+	det = [	(EnergyDetector(), None) ]
+
+	cls = [	SNEESHTERCAVDetector,
+		SNEESHTERMACDetector ]
+
+	for L in xrange(5, 25, 5):
+		for c in cls:
+			det.append((c(L=L), "l%d" % (L,)))
+
+	gencl = [ LoadMeasurement("samples-eshtercov/eshtercov_unb_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
+
+	Pgenl = [None] + range(-100, -85, 1)
+
+	return make_campaign_det_gencl(fc, det, fsNs, gencl, Pgenl)
 
 def cmdline():
 	parser = OptionParser()

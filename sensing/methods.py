@@ -4,6 +4,25 @@ import scipy.linalg
 
 from sensing.utils import fam
 
+class CAVMixin:
+	SLUG = 'cav'
+
+	def __call__(self, x):
+		R = self.R(x)
+		T1 = numpy.sum(numpy.abs(R))/self.L
+		T2 = numpy.abs(R[0,0])
+		return T1/T2
+
+class MACMixin:
+	SLUG = 'mac'
+
+	def __call__(self, x):
+		R = self.R(x)
+
+		T1 = numpy.max(numpy.abs(R[0,1:]))
+		T2 = numpy.abs(R[0,0])
+		return T1/T2
+
 class SNEISMTVDetector:
 	SLUG = 'ed'
 
@@ -19,6 +38,36 @@ class SNEISMTVDetector:
 		x_w = 1e-3 * 10. ** (x_dbm / 10.)
 
 		return numpy.sum(x_w)
+
+class SNEESHTERDetector:
+	K = 8.
+
+	def __init__(self, L=None):
+		self.L = L
+
+	def R(self, x):
+		if self.L is not None:
+			assert self.L <= len(x)
+			x = x[:self.L]
+
+		lbd = x / self.K
+		return scipy.linalg.toeplitz(lbd)
+
+class EnergyFromCovarianceMixin:
+	SLUG = 'ed'
+
+	def __call__(self, x):
+		R = self.R(x)
+		return R[0,0]
+
+class SNEESHTEREnergyDetector(SNEESHTERDetector, EnergyFromCovarianceMixin):
+	pass
+
+class SNEESHTERCAVDetector(SNEESHTERDetector, CAVMixin):
+	pass
+
+class SNEESHTERMACDetector(SNEESHTERDetector, MACMixin):
+	pass
 
 class EnergyDetector:
 	SLUG = 'ed'
@@ -50,14 +99,8 @@ class CovarianceDetector:
 
 		return scipy.linalg.toeplitz(lbd)
 
-class CAVDetector(CovarianceDetector):
-	SLUG = 'cav'
-
-	def __call__(self, x):
-		R = self.R(x)
-		T1 = numpy.sum(numpy.abs(R))/self.L
-		T2 = numpy.abs(R[0,0])
-		return T1/T2
+class CAVDetector(CovarianceDetector, CAVMixin):
+	pass
 
 class CFNDetector(CovarianceDetector):
 	SLUG = 'cfn'
@@ -68,15 +111,8 @@ class CFNDetector(CovarianceDetector):
 		T2 = R[0,0]**2.
 		return T1/T2
 
-class MACDetector(CovarianceDetector):
-	SLUG = 'mac'
-
-	def __call__(self, x):
-		R = self.R(x)
-
-		T1 = numpy.max(numpy.abs(R[0,1:]))
-		T2 = numpy.abs(R[0,0])
-		return T1/T2
+class MACDetector(CovarianceDetector, MACMixin):
+	pass
 
 class EigenvalueDetector(CovarianceDetector):
 	def lbd(self, x):

@@ -61,13 +61,30 @@ class USRPMeasurementProcess(MeasurementProcess):
 
 import vesna.spectrumsensor
 
-class SNEESHTERMeasurementProcess(MeasurementProcess):
+class SNEESHTERCovarianceMeasurementProcess(MeasurementProcess):
 
-	SLUG = "eshter"
+	SLUG = "eshtercov"
+
+	WARMUP_MIN = 1
 
 	def setup(self):
 		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
 		self.config_list = self.sensor.get_config_list()
+
+		self.warmup()
+
+	def warmup(self):
+		sample_config = self.config_list.get_config(0, 2).get_sample_config(850e6, 20)
+
+		start_time = time.time()
+		stop_time = start_time + self.WARMUP_MIN*60.
+
+		def cb(sample_config, data):
+			return time.time() < stop_time
+
+		sys.stdout.write("begin warmup\n")
+		self.sensor.sample_run(sample_config, cb)
+		sys.stdout.write("end warmup\n")
 
 	def measure(self, Ns, Np, fc, fs, Pgen):
 
@@ -83,7 +100,7 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 		sample_config = device_config.get_sample_config(fc, Ns)
 		assert fs == sample_config.config.bw*2.
 
-		sys.stdout.write("recording %d samples at %f Hz\n" % (Ns*Np2, fc))
+		sys.stdout.write("recording %d*%d samples at %f Hz\n" % (Ns, Np2, fc))
 		sys.stdout.write("device config: %s\n" % (sample_config.config.name,))
 
 		x = np.empty(shape=Ns*Np2)
@@ -122,7 +139,6 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 		xa.tofile(path)
 
 		return path
-
 
 class SNEISMTVMeasurementProcess(MeasurementProcess):
 
@@ -289,6 +305,19 @@ def do_eshter_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 
 	do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls)
 
+def do_eshtercov_campaign_generator(genc, Pgenl, measurement_cls):
+
+	out_path = "samples-eshtercov"
+
+	do_campaign(
+		genc,
+		fc=700e6,
+		fs=2e6,
+		Ns=20,
+		Pgenl=Pgenl,
+		out_path="samples-eshtercov",
+		measurement_cls=measurement_cls)
+
 def ex_usrp_campaign_dc():
 
 	fsNs = [	(1e6, 25000),
@@ -368,6 +397,11 @@ def ex_eshter_campaign_mic():
 
 	do_eshter_sampling_campaign_generator(genc, Pgenl, SNEESHTERMeasurementProcess)
 
+def ex_eshtercov_campaign_unb():
+	genc = UNB()
+	Pgenl = [None] + range(-1000, -700, 10)
+
+	do_eshtercov_campaign_generator(genc, Pgenl, SNEESHTERCovarianceMeasurementProcess)
 
 def main():
 

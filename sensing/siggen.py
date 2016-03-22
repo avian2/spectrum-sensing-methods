@@ -125,6 +125,30 @@ class IEEEMicSoftSpeaker(IEEEMic):
 	fdev = 15000
 	fm = 3900
 
+class UNB(ARBSMBVGeneratorControl):
+	SLUG = "unb"
+
+	def set_waveform(self):
+		bps = 160.
+
+		Nbits = 32 + 12 + 40 + (12 * 8) + 128 + 16
+
+		# oversampling factor
+		k = 10.
+
+		fs = bps * k
+		N = Nbits * k
+
+		#print "running for %f s" % (N/fs,)
+
+		x = np.random.randint(0, 2, size=(N,))
+		x = x*2. - 1.
+
+		assert max(x) == 1.
+		assert min(x) == -1.
+
+		self.set_arb_waveform(fs, x)
+
 def main():
 	try:
 		slug = sys.argv[1]

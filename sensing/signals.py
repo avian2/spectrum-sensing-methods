@@ -130,7 +130,7 @@ class LoadMeasurement:
 		bn = os.path.basename(template)
 		self.SLUG = '_'.join(bn.split('_')[:2])
 
-	def get(self, N, fc, fs, Pgen):
+	def get(self, N, fc, fs, Pgen, fcgen):
 
 		if Pgen is None:
 			m = "off"
@@ -139,8 +139,14 @@ class LoadMeasurement:
 			m = m.replace('-','m')
 			m = m.replace('.','_')
 
+		if fcgen is None:
+			n = ''
+		else:
+			n = '%dkhz' % (fcgen/1e3)
+
 		path = self.template % {
 				'Pgen': m,
+				'fcgen': n,
 				'fs': "%.0f" % (fs/1e6),
 				'Ns': N/self.Np/1000 }
 

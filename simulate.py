@@ -16,7 +16,7 @@ OUTPATH=datetime.datetime.now().strftime("simout-%Y%m%d-%H%M%S")
 
 Np = 1000
 
-def get_path(genc, func, funcname, Ns, fs, Pgen):
+def get_path(genc, func, funcname, Ns, fs, Pgen, fcgen):
 	mp_slug = "sim"
 
 	if Pgen is None:
@@ -28,6 +28,11 @@ def get_path(genc, func, funcname, Ns, fs, Pgen):
 
 		suf = '%sdbm.dat' % (m,)
 
+	if fcgen is None:
+		suf2 = ''
+	else:
+		suf2 = 'fcgen%dkhz_' % (fcgen/1e3,)
+
 	path = '%s/dat/%s_%s_fs%dmhz_Ns%dks_' % (
 				OUTPATH,
 				mp_slug,
@@ -36,15 +41,15 @@ def get_path(genc, func, funcname, Ns, fs, Pgen):
 	if funcname:
 		path += funcname + "_"
 
-	path += suf
+	path += suf2 + suf
 
 	return path
 
-def run_simulation(genc, det, Np, Ns, fc, fs, Pgen):
+def run_simulation(genc, det, Np, Ns, fc, fs, Pgen, fcgen):
 
 	N = Np*Ns
 
-	x = genc.get(N, fc, fs, Pgen)
+	x = genc.get(N, fc, fs, Pgen, fcgen)
 	assert len(x) == N
 
 	jl = range(0, N, Ns)
@@ -57,7 +62,7 @@ def run_simulation(genc, det, Np, Ns, fc, fs, Pgen):
 			x0 = x[j:j+Ns]
 			gammal[i] = func(x0)
 
-		path = get_path(genc, func, funcname, Ns, fs, Pgen)
+		path = get_path(genc, func, funcname, Ns, fs, Pgen, fcgen)
 
 		assert not os.path.exists(path)
 		np.savetxt(path, gammal)
@@ -69,9 +74,9 @@ def run_simulation_(kwargs):
 		traceback.print_exc()
 		raise
 
-def make_campaign_det_gencl(fc, det, fsNsl, gencl, Pgenl):
+def make_campaign_det_gencl(fc, det, fsNsl, gencl, Pfcgenl):
 	task_list = []
-	for Pgen in Pgenl:
+	for Pgen, fcgen in Pfcgenl:
 		for fs, Ns in fsNsl:
 			for genc in gencl:
 				task_list.append({
@@ -81,7 +86,8 @@ def make_campaign_det_gencl(fc, det, fsNsl, gencl, Pgenl):
 					'Ns': Ns,
 					'fc': fc,
 					'fs': fs,
-					'Pgen': Pgen
+					'Pgen': Pgen,
+					'fcgen': fcgen,
 				})
 
 	return task_list
@@ -238,13 +244,13 @@ def ex_calc_campaign_noise():
 
 	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
 
-def ex_calc_sneshtercov_campaign_unb():
+def ex_calc_sneeshtercov_campaign_unb():
 
 	fsNs = [	(2e6, 20) ]
 
 	fc = 700e6
 
-	det = [	(EnergyDetector(), None) ]
+	det = [	(SNEESHTEREnergyDetector(), None) ]
 
 	cls = [	SNEESHTERCAVDetector,
 		SNEESHTERMACDetector ]
@@ -253,11 +259,33 @@ def ex_calc_sneshtercov_campaign_unb():
 		for c in cls:
 			det.append((c(L=L), "l%d" % (L,)))
 
-	gencl = [ LoadMeasurement("samples-eshtercov/eshtercov_unb_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
+	gencl = [ LoadMeasurement("samples-eshtercov-powersweep/eshtercov_unb_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
 
-	Pgenl = [None] + range(-100, -85, 1)
+	Pgenl = [None] + range(-100, -77, 1)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	return make_campaign_det_gencl(fc, det, fsNs, gencl, Pgenl)
+	return make_campaign_det_gencl(fc, det, fsNs, gencl, Pfcgenl)
+
+def ex_calc_sneeshtercov_campaign_unb_freq_sweep():
+
+	fsNs = [	(2e6, 20) ]
+
+	fc = 700e6
+
+	det = [	(SNEESHTERMACDetector(L=5), 'l5'),
+		(SNEESHTERCAVDetector(L=5), 'l5'),
+		(SNEESHTERCAVDetector(L=10), 'l10'),
+		(SNEESHTERCAVDetector(L=15), 'l15'),
+		(SNEESHTERCAVDetector(L=20), 'l20'),
+		(SNEESHTEREnergyDetector(), None) ]
+
+	gencl = [ LoadMeasurement("samples-eshtercov-freqsweep/eshtercov_unb_fs%(fs)smhz_Ns%(Ns)sks_fcgen%(fcgen)s_%(Pgen)s.npy", Np=Np) ]
+
+	Pfcgenl = [ (None, 700e6) ]
+	Pfcgenl += [ (-90, 700e6 + foff) for foff in np.arange(-.60e6, .61e6, .05e6) ]
+
+	return make_campaign_det_gencl(fc, det, fsNs, gencl, Pfcgenl)
+
 
 def cmdline():
 	parser = OptionParser()

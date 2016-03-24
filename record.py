@@ -6,6 +6,7 @@ import numpy as np
 from sensing.siggen import *
 import sys
 import time
+import threading
 
 TEMPDIR="/tmp"
 
@@ -64,30 +65,75 @@ class USRPMeasurementProcess(MeasurementProcess):
 
 import vesna.spectrumsensor
 
+class AsyncSpectrumSensor:
+	WARMUP_MIN = 5
+
+	def __init__(self, device):
+		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
+		self.want_stop = False
+
+		self.worker = None
+
+		self.sample_config = None
+
+		self.work_cv = threading.Condition()
+
+		self.user_cb = None
+
+	def get_config_list(self):
+		return self.sensor.get_config_list()
+
+	def start(self, sample_config):
+		if self.worker is None:
+			self.sample_config = sample_config
+			self.worker = threading.Thread(	target=self.sensor.sample_run,
+							args=(sample_config, self.cb))
+
+			sys.stdout.write("begin warmup\n")
+
+			self.worker.start()
+			time.sleep(self.WARMUP_MIN*60)
+
+			sys.stdout.write("end warmup\n")
+		else:
+			assert self.sample_config.nsamples == sample_config.nsamples
+			assert self.sample_config.config == sample_config.config
+
+	def cb(self, sample_config, data):
+		self.work_cv.acquire()
+		if self.user_cb is not None:
+			r = self.user_cb(sample_config, data)
+			if not r:
+				self.user_cb = None
+				self.work_cv.notify()
+			else:
+				self.work_cv.release()
+				return True
+
+		self.work_cv.release()
+		return not self.want_stop
+
+	def record(self, cb):
+		self.work_cv.acquire()
+		self.user_cb = cb
+		self.work_cv.wait()
+		self.work_cv.release()
+
+	def stop(self):
+		if self.worker is not None:
+			self.want_stop = True
+			self.worker.join()
+
+			self.worker = None
+			self.sample_config = None
+
 class SNEESHTERCovarianceMeasurementProcess(MeasurementProcess):
 
 	SLUG = "eshtercov"
 
-	WARMUP_MIN = 5
-
 	def setup(self):
-		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
+		self.sensor = AsyncSpectrumSensor("/dev/ttyUSB0")
 		self.config_list = self.sensor.get_config_list()
-
-		self.warmup()
-
-	def warmup(self):
-		sample_config = self.config_list.get_config(0, 2).get_sample_config(850e6, 20)
-
-		start_time = time.time()
-		stop_time = start_time + self.WARMUP_MIN*60.
-
-		def cb(sample_config, data):
-			return time.time() < stop_time
-
-		sys.stdout.write("begin warmup\n")
-		self.sensor.sample_run(sample_config, cb)
-		sys.stdout.write("end warmup\n")
 
 	def measure(self, Ns, Np, fc, fs, Pgen, fcgen):
 
@@ -109,26 +155,28 @@ class SNEESHTERCovarianceMeasurementProcess(MeasurementProcess):
 		sys.stdout.write("recording %d*%d samples at %f Hz\n" % (Ns, Np2, fc))
 		sys.stdout.write("device config: %s\n" % (sample_config.config.name,))
 
+		self.sensor.start(sample_config)
+
 		x = np.empty(shape=Ns*Np2)
-		sample_config.i = 0
+		i = [0]
 
 		def cb(sample_config, data):
 			assert len(data.data) == Ns
 
-			x[sample_config.i*Ns:(sample_config.i+1)*Ns] = data.data
+			x[i[0]*Ns:(i[0]+1)*Ns] = data.data
 
 			sys.stdout.write('.')
 			sys.stdout.flush()
 
-			sample_config.i += 1
+			i[0] += 1
 
-			if sample_config.i >= Np2:
+			if i[0] >= Np2:
 				return False
 			else:
 				return True
 
 		self.genc.set(fcgen, Pgen)
-		self.sensor.sample_run(sample_config, cb)
+		self.sensor.record(cb)
 		self.genc.off()
 
 		sys.stdout.write('\n')
@@ -145,6 +193,10 @@ class SNEESHTERCovarianceMeasurementProcess(MeasurementProcess):
 		xa.tofile(path)
 
 		return path
+
+	def run(self):
+		MeasurementProcess.run(self)
+		self.sensor.stop()
 
 class SNEISMTVMeasurementProcess(MeasurementProcess):
 
@@ -234,7 +286,7 @@ class SimulatedMeasurementProcess(MeasurementProcess):
 		return path
 
 def do_campaign(genc, fc, fs, Ns, Pfcgenl, out_path, measurement_cls):
-	Np = 1000
+	Np = 500
 
 	extra = Ns*5
 
@@ -420,7 +472,7 @@ def ex_eshter_campaign_mic():
 
 def ex_eshtercov_campaign_unb():
 	genc = UNB()
-	Pgenl = [None] + range(-1000, -700, 10)
+	Pgenl = [None] + range(-1000, -760, 10)
 	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
 	do_eshtercov_campaign_generator(genc, Pfcgenl, SNEESHTERCovarianceMeasurementProcess)
@@ -429,9 +481,7 @@ def ex_eshtercov_campaign_unb_freq_sweep():
 	genc = UNB()
 
 	Pfcgenl = [ (None, 700e6) ]
-	Pfcgenl += [ (-900, 700e6 + foff) for foff in np.arange(-.60e6, .61e6, .05e6) ]
-
-	print Pfcgenl
+	Pfcgenl += [ (-900, 700e6 + foff) for foff in np.arange(-1.00e6, .61e6, .05e6) ]
 
 	do_eshtercov_campaign_generator(genc, Pfcgenl, SNEESHTERCovarianceMeasurementProcess)
 

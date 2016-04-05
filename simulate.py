@@ -279,7 +279,7 @@ def ex_calc_sneeshtercov_campaign_unb_freq_sweep():
 		(SNEESHTERCAVDetector(L=20), 'l20'),
 		(SNEESHTEREnergyDetector(), None) ]
 
-	gencl = [ LoadMeasurement("samples-eshtercov/eshtercov_unb_fs%(fs)smhz_Ns%(Ns)sks_fcgen%(fcgen)s_%(Pgen)s.npy", Np=Np) ]
+	gencl = [ LoadMeasurement("samples-eshtercov-freqsweep/eshtercov_unb_fs%(fs)smhz_Ns%(Ns)sks_fcgen%(fcgen)s_%(Pgen)s.npy", Np=Np) ]
 
 	Pfcgenl = [ (None, 700e6) ]
 	Pfcgenl += [ (-90, 700e6 + foff) for foff in np.arange(-1.00e6, .61e6, .05e6) ]

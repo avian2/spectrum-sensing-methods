@@ -472,7 +472,7 @@ def ex_eshter_campaign_mic():
 
 def ex_eshtercov_campaign_unb():
 	genc = UNB()
-	Pgenl = [None] + range(-1000, -760, 10)
+	Pgenl = [None] + range(-1000, -740, 10)
 	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
 	do_eshtercov_campaign_generator(genc, Pfcgenl, SNEESHTERCovarianceMeasurementProcess)

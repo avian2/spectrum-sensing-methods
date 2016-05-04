@@ -99,6 +99,34 @@ class CovarianceDetector:
 
 		return scipy.linalg.toeplitz(lbd)
 
+class FSCBD:
+	SLUG = 'fscbd'
+
+	def __init__(self, par):
+		assert par[0][0] == 0
+		self.par = par
+
+	def __call__(self, x):
+		x0 = x - numpy.mean(x)
+		Ns = len(x0)
+
+		T1 = 0.
+		T2 = None
+
+		for i, (l, a) in enumerate(self.par):
+			if l > 0:
+				xu = x0[:-l]
+			else:
+				xu = x0
+
+			lbd = numpy.dot(xu, x0[l:])/(Ns-l)
+			T1 += a * numpy.abs(lbd)
+
+			if l == 0:
+				T2 = numpy.abs(lbd)
+
+		return T1/T2
+
 class CAVDetector(CovarianceDetector, CAVMixin):
 	pass
 

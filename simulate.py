@@ -129,29 +129,54 @@ def make_sneismtv_campaign_gencl(fsNsl, gencl, Pgenl):
 
 def ex_sim_spurious_campaign_mic():
 
-	fsNs = [ (2e6, 25000) ]
+	fs = 2e6
+
+	fsNs = [ (fs, 25000) ]
 	Pgenl = [None] + range(-140, -100, 1)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
 	fnl = [
-		3.*fs/8.,
-		3.*fs/8.+1e3,
+#		3.*fs/8.,
+#		3.*fs/8.+1e3,
 #		fs/4.,
 #		fs/4.+1e3,
 #		fs/8.,
 #		fs/8.+1e3,
 #		fs/32.,
 #		fs/128.,
+		fs * .5 / 2. / np.pi,
 	]
 
+	Pngaussian = -110.
+
 	gencl = []
-#	gencl.append(SimulatedIEEEMicSoftSpeaker())
+	gencl.append(	AddGaussianNoise(
+				SimulatedIEEEMicSoftSpeaker(),
+				Pn=Pngaussian)
+			)
 
 	Pnl  = range(-130, -100, 2)
 	for Pn in Pnl:
 		for fn in fnl:
-			gencl.append(AddSpuriousCosine(SimulatedIEEEMicSoftSpeaker(), fn, Pn=Pn))
+			gencl.append(	AddGaussianNoise(
+						AddSpuriousCosine(
+							SimulatedIEEEMicSoftSpeaker(),
+							fn, Pn=Pn),
+						Pn=Pngaussian)
+					)
 
-	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
+	fc = 864e6
+
+	det = [	(EnergyDetector(), None) ]
+
+	cls = [	CAVDetector,
+		MACDetector ]
+
+	for c in cls:
+		L = 25
+		det.append((c(L=L), "l%d" % (L,)))
+
+	return make_campaign_det_gencl(fc, det, fsNs, gencl, Pfcgenl)
 
 def ex_sim_gaussian_noise_campaign_mic():
 

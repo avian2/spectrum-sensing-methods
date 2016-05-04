@@ -54,8 +54,8 @@ class AddSpuriousCosine:
 		xn *= self.An / np.std(xn)
 		return xn
 
-	def get(self, N, fc, fs, Pgen):
-		xs = self.signal.get(N, fc, fs, Pgen)
+	def get(self, N, fc, fs, Pgen, fcgen):
+		xs = self.signal.get(N, fc, fs, Pgen, fcgen)
 		xn = self._get(N, fs)
 
 		return xs + xn
@@ -67,8 +67,8 @@ class AddGaussianNoise:
 		self.SLUG = "%s_gaussian_noise_%ddbm" % (signal.SLUG, Pn)
 		self.SLUG = self.SLUG.replace('-','m')
 
-	def get(self, N, fc, fs, Pgen):
-		xs = self.signal.get(N, fc, fs, Pgen)
+	def get(self, N, fc, fs, Pgen, fcgen):
+		xs = self.signal.get(N, fc, fs, Pgen, fcgen)
 		xn = np.random.normal(loc=0, scale=self.An, size=N)
 
 		return xs + xn

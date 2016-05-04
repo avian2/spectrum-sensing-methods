@@ -16,7 +16,8 @@ class SimulatedIEEEMicSoftSpeaker:
 		if fmic is None:
 			fmic = fs/4.
 
-		ph = 2.0*np.pi*fmic*t + self.fdev/self.fm * np.cos(2.0*np.pi*self.fm*t)
+		ph0 = np.random.random() * 2. * np.pi
+		ph = ph0 + 2.0*np.pi*fmic*t + self.fdev/self.fm * np.cos(2.0*np.pi*self.fm*t)
 		x = np.cos(ph)
 
 		return x
@@ -49,7 +50,8 @@ class AddSpuriousCosine:
 		self.SLUG = self.SLUG.replace('-','m')
 
 	def _get(self, N, fs):
-		ph = 2. * np.pi * np.arange(N) * self.fn / fs
+		ph0 = np.random.random() * 2. * np.pi
+		ph = ph0 + 2. * np.pi * np.arange(N) * self.fn / fs
 		xn = np.cos(ph)
 		xn *= self.An / np.std(xn)
 		return xn

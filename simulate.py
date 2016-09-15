@@ -64,7 +64,7 @@ def run_simulation(genc, det, Np, Ns, fc, fs, Pgen, fcgen):
 
 		path = get_path(genc, func, funcname, Ns, fs, Pgen, fcgen)
 
-		assert not os.path.exists(path)
+		assert not os.path.exists(path), ("Not overwriting %r" % (path,))
 		np.savetxt(path, gammal)
 
 def run_simulation_(kwargs):
@@ -114,6 +114,60 @@ def make_sampling_campaign_gencl(fsNsl, gencl, Pgenl):
 		det += [ (SCFDetector(Np=scfNp, L=scfNp/4), "Np%d" % (scfNp,)) ]
 
 	return make_campaign_det_gencl(fc, det, fsNsl, gencl, Pgenl)
+
+def make_sampling_campaign_gencl_compdet(fsNsl, gencl, Pfcgenl):
+
+	fc = 864e6
+
+	# We can make just one instance for all detectors that do not use
+	# noise-compensation. These are stored om "det".
+	det = [	(EnergyDetector(), None) ]
+
+	cls = [	CAVDetector,
+		MACDetector,
+	]
+
+	Ll = range(5, 25, 5)
+	for L in Ll:
+		for c in cls:
+			det.append((c(L=L), "l%d" % (L,)))
+
+	# Compensated detectors need to be instantiated with a sample of the
+	# noise. This sample varies with fs, hence we need to make a separate
+	# instance for each of the fs values we use.
+	compcls = [	CompCAVDetector,
+			CompMACDetector,
+	]
+
+	task_list = []
+
+	for fs, Ns in fsNsl:
+		# We assume fcgen is not used in this test.
+		for Pgen, fcgen in Pfcgenl:
+			assert fcgen is None
+		fcgen = None
+
+		# We assume only one generator function is used. This is
+		# typically true on runs that work on measured data (not
+		# simulations)
+		assert len(gencl) == 1
+		genc = gencl[0]
+
+		# Get a sample of noise for this particular fs.
+		N = Np * Ns
+		xn = genc.get(N, fc, fs, None, fcgen)
+
+		# Instantiate detectors.
+		compdet = list(det)
+		for L in Ll:
+			for c in compcls:
+				compdet.append((c(L=L, xn=xn), "l%d" % (L,)))
+
+		# Create a tasklist using this set of detectors. Accumulate all
+		# tasks in a single list to be returned later.
+		task_list += make_campaign_det_gencl(fc, compdet, [(fs, Ns)], gencl, Pfcgenl)
+
+	return task_list
 
 def make_sneismtv_campaign_gencl(fsNsl, gencl, Pgenl):
 
@@ -262,10 +316,11 @@ def ex_calc_campaign_mic():
 			(10e6, 100000),
 		]
 	Pgenl = [None] + range(-100, -70, 1)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	gencl = [ LoadMeasurement("samples/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
+	gencl = [ LoadMeasurement("samples-usrp_campaign_mic2/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
 
-	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
+	return make_sampling_campaign_gencl_compdet(fsNs, gencl, Pfcgenl)
 
 def ex_calc_sneismtv_campaign_mic():
 

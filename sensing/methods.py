@@ -78,7 +78,7 @@ class EnergyDetector:
 	def __call__(self, x):
 		return numpy.dot(x, x)
 
-class CovarianceDetector:
+class CovarianceDetector(object):
 	def __init__(self, L=10):
 		self.L = L
 
@@ -98,6 +98,21 @@ class CovarianceDetector:
 			lbd[l] = numpy.dot(xu, x0[l:])/(Ns-l)
 
 		return scipy.linalg.toeplitz(lbd)
+
+class CompCovarianceDetector(CovarianceDetector):
+	def __init__(self, L, xn):
+		super(CompCovarianceDetector, self).__init__(L)
+		self._train(xn)
+		self.SLUG = "c" + self.SLUG
+
+	def _train(self, xn):
+		R = super(CompCovarianceDetector, self).R(xn)
+		Q = scipy.linalg.sqrtm(R)
+		self.Qinv = numpy.linalg.inv(Q)
+
+	def R(self, x):
+		R = super(CompCovarianceDetector, self).R(x)
+		return numpy.dot(numpy.dot(self.Qinv, R), self.Qinv)
 
 class FSCBD:
 	SLUG = 'fscbd'
@@ -130,6 +145,9 @@ class FSCBD:
 class CAVDetector(CovarianceDetector, CAVMixin):
 	pass
 
+class CompCAVDetector(CompCovarianceDetector, CAVMixin):
+	pass
+
 class CFNDetector(CovarianceDetector):
 	SLUG = 'cfn'
 
@@ -140,6 +158,9 @@ class CFNDetector(CovarianceDetector):
 		return T1/T2
 
 class MACDetector(CovarianceDetector, MACMixin):
+	pass
+
+class CompMACDetector(CompCovarianceDetector, MACMixin):
 	pass
 
 class EigenvalueDetector(CovarianceDetector):

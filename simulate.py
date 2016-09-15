@@ -124,7 +124,12 @@ def make_sampling_campaign_gencl_compdet(fsNsl, gencl, Pfcgenl):
 	det = [	(EnergyDetector(), None) ]
 
 	cls = [	CAVDetector,
+		CFNDetector,
 		MACDetector,
+		MMEDetector,
+		EMEDetector,
+		AGMDetector,
+		METDetector,
 	]
 
 	Ll = range(5, 25, 5)
@@ -136,7 +141,12 @@ def make_sampling_campaign_gencl_compdet(fsNsl, gencl, Pfcgenl):
 	# noise. This sample varies with fs, hence we need to make a separate
 	# instance for each of the fs values we use.
 	compcls = [	CompCAVDetector,
+			CompCFNDetector,
 			CompMACDetector,
+			CompMMEDetector,
+			CompEMEDetector,
+			CompAGMDetector,
+			CompMETDetector,
 	]
 
 	task_list = []

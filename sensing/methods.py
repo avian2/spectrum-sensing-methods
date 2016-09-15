@@ -148,7 +148,7 @@ class CAVDetector(CovarianceDetector, CAVMixin):
 class CompCAVDetector(CompCovarianceDetector, CAVMixin):
 	pass
 
-class CFNDetector(CovarianceDetector):
+class CFNMixin:
 	SLUG = 'cfn'
 
 	def __call__(self, x):
@@ -157,20 +157,26 @@ class CFNDetector(CovarianceDetector):
 		T2 = R[0,0]**2.
 		return T1/T2
 
+class CFNDetector(CovarianceDetector, CFNMixin):
+	pass
+
+class CompCFNDetector(CompCovarianceDetector, CFNMixin):
+	pass
+
 class MACDetector(CovarianceDetector, MACMixin):
 	pass
 
 class CompMACDetector(CompCovarianceDetector, MACMixin):
 	pass
 
-class EigenvalueDetector(CovarianceDetector):
+class EigenvalueMixin(object):
 	def lbd(self, x):
 		R = self.R(x)
 
 		lbd = numpy.linalg.eigvalsh(R)
 		return numpy.abs(lbd)
 
-class MMEDetector(EigenvalueDetector):
+class MMEMixin(EigenvalueMixin):
 	SLUG = 'mme'
 
 	def __call__(self, x):
@@ -179,7 +185,13 @@ class MMEDetector(EigenvalueDetector):
 
 		return lbd[-1]/lbd[0]
 
-class EMEDetector(EigenvalueDetector):
+class MMEDetector(CovarianceDetector, MMEMixin):
+	pass
+
+class CompMMEDetector(CompCovarianceDetector, MMEMixin):
+	pass
+
+class EMEMixin(EigenvalueMixin):
 	SLUG = 'eme'
 
 	def __call__(self, x):
@@ -188,7 +200,13 @@ class EMEDetector(EigenvalueDetector):
 
 		return numpy.sum(x**2)/lbd[0]
 
-class AGMDetector(EigenvalueDetector):
+class EMEDetector(CovarianceDetector, EMEMixin):
+	pass
+
+class CompEMEDetector(CompCovarianceDetector, EMEMixin):
+	pass
+
+class AGMMixin(EigenvalueMixin):
 	SLUG = 'agm'
 
 	def __call__(self, x):
@@ -196,7 +214,13 @@ class AGMDetector(EigenvalueDetector):
 
 		return numpy.mean(lbd)/(numpy.prod(lbd)**(1./len(lbd)))
 
-class METDetector(EigenvalueDetector):
+class AGMDetector(CovarianceDetector, AGMMixin):
+	pass
+
+class CompAGMDetector(CompCovarianceDetector, AGMMixin):
+	pass
+
+class METMixin(EigenvalueMixin):
 	SLUG = 'met'
 
 	def __call__(self, x):
@@ -204,6 +228,12 @@ class METDetector(EigenvalueDetector):
 		lbd.sort()
 
 		return lbd[-1]/numpy.sum(lbd)
+
+class METDetector(CovarianceDetector, METMixin):
+	pass
+
+class CompMETDetector(CompCovarianceDetector, METMixin):
+	pass
 
 class CyclostationaryDetector:
 	def __init__(self, Np, L):

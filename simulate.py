@@ -328,7 +328,7 @@ def ex_calc_campaign_mic():
 	Pgenl = [None] + range(-100, -70, 1)
 	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	gencl = [ LoadMeasurement("samples-usrp_campaign_mic2/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
+	gencl = [ LoadMeasurement("samples-usrp_campaign_mic/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
 
 	return make_sampling_campaign_gencl_compdet(fsNs, gencl, Pfcgenl)
 
@@ -364,10 +364,11 @@ def ex_calc_campaign_noise():
 			(10e6, 100000),
 		]
 	Pgenl = [None] + range(-70, -10, 2)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
 	gencl = [ LoadMeasurement("samples-usrp_campaign_noise/usrp_noise_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
 
-	return make_sim_campaign_gencl(fsNs, gencl, Pgenl)
+	return make_sampling_campaign_gencl_compdet(fsNs, gencl, Pfcgenl)
 
 def ex_calc_sneeshtercov_campaign_unb():
 

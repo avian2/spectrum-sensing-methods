@@ -156,4 +156,10 @@ class LoadMeasurement:
 
 		assert len(x) >= N
 
-		return x[:N]
+		# NOTE: samples-usrp_campaign_mic has been recorded before
+		# commit c67973, which means that those files contain complex64,
+		# not float32 values.
+		#
+		# Hence we strip the real part here for compatibility. It's
+		# harmless and works on float32 files as well.
+		return x.real[:N]

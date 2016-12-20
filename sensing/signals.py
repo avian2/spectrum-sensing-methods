@@ -16,7 +16,8 @@ class SimulatedIEEEMicSoftSpeaker:
 		if fmic is None:
 			fmic = fs/4.
 
-		ph = 2.0*np.pi*fmic*t + self.fdev/self.fm * np.cos(2.0*np.pi*self.fm*t)
+		ph0 = np.random.random() * 2. * np.pi
+		ph = ph0 + 2.0*np.pi*fmic*t + self.fdev/self.fm * np.cos(2.0*np.pi*self.fm*t)
 		x = np.cos(ph)
 
 		return x
@@ -49,13 +50,14 @@ class AddSpuriousCosine:
 		self.SLUG = self.SLUG.replace('-','m')
 
 	def _get(self, N, fs):
-		ph = 2. * np.pi * np.arange(N) * self.fn / fs
+		ph0 = np.random.random() * 2. * np.pi
+		ph = ph0 + 2. * np.pi * np.arange(N) * self.fn / fs
 		xn = np.cos(ph)
 		xn *= self.An / np.std(xn)
 		return xn
 
-	def get(self, N, fc, fs, Pgen):
-		xs = self.signal.get(N, fc, fs, Pgen)
+	def get(self, N, fc, fs, Pgen, fcgen):
+		xs = self.signal.get(N, fc, fs, Pgen, fcgen)
 		xn = self._get(N, fs)
 
 		return xs + xn
@@ -67,8 +69,8 @@ class AddGaussianNoise:
 		self.SLUG = "%s_gaussian_noise_%ddbm" % (signal.SLUG, Pn)
 		self.SLUG = self.SLUG.replace('-','m')
 
-	def get(self, N, fc, fs, Pgen):
-		xs = self.signal.get(N, fc, fs, Pgen)
+	def get(self, N, fc, fs, Pgen, fcgen):
+		xs = self.signal.get(N, fc, fs, Pgen, fcgen)
 		xn = np.random.normal(loc=0, scale=self.An, size=N)
 
 		return xs + xn
@@ -130,7 +132,7 @@ class LoadMeasurement:
 		bn = os.path.basename(template)
 		self.SLUG = '_'.join(bn.split('_')[:2])
 
-	def get(self, N, fc, fs, Pgen):
+	def get(self, N, fc, fs, Pgen, fcgen):
 
 		if Pgen is None:
 			m = "off"
@@ -139,8 +141,14 @@ class LoadMeasurement:
 			m = m.replace('-','m')
 			m = m.replace('.','_')
 
+		if fcgen is None:
+			n = ''
+		else:
+			n = '%dkhz' % (fcgen/1e3)
+
 		path = self.template % {
 				'Pgen': m,
+				'fcgen': n,
 				'fs': "%.0f" % (fs/1e6),
 				'Ns': N/self.Np/1000 }
 
@@ -148,4 +156,10 @@ class LoadMeasurement:
 
 		assert len(x) >= N
 
-		return x[:N]
+		# NOTE: samples-usrp_campaign_mic has been recorded before
+		# commit c67973, which means that those files contain complex64,
+		# not float32 values.
+		#
+		# Hence we strip the real part here for compatibility. It's
+		# harmless and works on float32 files as well.
+		return x.real[:N]

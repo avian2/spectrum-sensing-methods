@@ -6,6 +6,7 @@ import numpy as np
 from sensing.siggen import *
 import sys
 import time
+import threading
 
 TEMPDIR="/tmp"
 
@@ -37,11 +38,14 @@ class USRPMeasurementProcess(MeasurementProcess):
 
 	SLUG = "usrp"
 
-	def measure(self, Ns, Np, fc, fs, Pgen):
+	def measure(self, Ns, Np, fc, fs, Pgen, fcgen):
+
+		if fcgen is None:
+			fcgen = fc + fs/4.
 
 		N = Ns*Np
 
-		self.genc.set(fc+fs/4, Pgen)
+		self.genc.set(fcgen, Pgen)
 
 		handle, path = tempfile.mkstemp(dir=TEMPDIR)
 		os.close(handle)
@@ -61,15 +65,80 @@ class USRPMeasurementProcess(MeasurementProcess):
 
 import vesna.spectrumsensor
 
-class SNEESHTERMeasurementProcess(MeasurementProcess):
+class AsyncSpectrumSensor:
+	WARMUP_MIN = 5
 
-	SLUG = "eshter"
+	def __init__(self, device):
+		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
+		self.want_stop = False
+
+		self.worker = None
+
+		self.sample_config = None
+
+		self.work_cv = threading.Condition()
+
+		self.user_cb = None
+
+	def get_config_list(self):
+		return self.sensor.get_config_list()
+
+	def start(self, sample_config):
+		if self.worker is None:
+			self.sample_config = sample_config
+			self.worker = threading.Thread(	target=self.sensor.sample_run,
+							args=(sample_config, self.cb))
+
+			sys.stdout.write("begin warmup\n")
+
+			self.worker.start()
+			time.sleep(self.WARMUP_MIN*60)
+
+			sys.stdout.write("end warmup\n")
+		else:
+			assert self.sample_config.nsamples == sample_config.nsamples
+			assert self.sample_config.config == sample_config.config
+
+	def cb(self, sample_config, data):
+		self.work_cv.acquire()
+		if self.user_cb is not None:
+			r = self.user_cb(sample_config, data)
+			if not r:
+				self.user_cb = None
+				self.work_cv.notify()
+			else:
+				self.work_cv.release()
+				return True
+
+		self.work_cv.release()
+		return not self.want_stop
+
+	def record(self, cb):
+		self.work_cv.acquire()
+		self.user_cb = cb
+		self.work_cv.wait()
+		self.work_cv.release()
+
+	def stop(self):
+		if self.worker is not None:
+			self.want_stop = True
+			self.worker.join()
+
+			self.worker = None
+			self.sample_config = None
+
+class SNEESHTERCovarianceMeasurementProcess(MeasurementProcess):
+
+	SLUG = "eshtercov"
 
 	def setup(self):
-		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
+		self.sensor = AsyncSpectrumSensor("/dev/ttyUSB0")
 		self.config_list = self.sensor.get_config_list()
 
-	def measure(self, Ns, Np, fc, fs, Pgen):
+	def measure(self, Ns, Np, fc, fs, Pgen, fcgen):
+
+		if fcgen is None:
+			fcgen = fc
 
 		if fs == 1e6:
 			device_config = self.config_list.get_config(0, 3)
@@ -83,29 +152,31 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 		sample_config = device_config.get_sample_config(fc, Ns)
 		assert fs == sample_config.config.bw*2.
 
-		sys.stdout.write("recording %d samples at %f Hz\n" % (Ns*Np2, fc))
+		sys.stdout.write("recording %d*%d samples at %f Hz\n" % (Ns, Np2, fc))
 		sys.stdout.write("device config: %s\n" % (sample_config.config.name,))
 
+		self.sensor.start(sample_config)
+
 		x = np.empty(shape=Ns*Np2)
-		sample_config.i = 0
+		i = [0]
 
 		def cb(sample_config, data):
 			assert len(data.data) == Ns
 
-			x[sample_config.i*Ns:(sample_config.i+1)*Ns] = data.data
+			x[i[0]*Ns:(i[0]+1)*Ns] = data.data
 
 			sys.stdout.write('.')
 			sys.stdout.flush()
 
-			sample_config.i += 1
+			i[0] += 1
 
-			if sample_config.i >= Np2:
+			if i[0] >= Np2:
 				return False
 			else:
 				return True
 
-		self.genc.set(fc, Pgen)
-		self.sensor.sample_run(sample_config, cb)
+		self.genc.set(fcgen, Pgen)
+		self.sensor.record(cb)
 		self.genc.off()
 
 		sys.stdout.write('\n')
@@ -123,6 +194,9 @@ class SNEESHTERMeasurementProcess(MeasurementProcess):
 
 		return path
 
+	def run(self):
+		MeasurementProcess.run(self)
+		self.sensor.stop()
 
 class SNEISMTVMeasurementProcess(MeasurementProcess):
 
@@ -151,7 +225,10 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 		self.sensor.sample_run(sample_config, cb)
 		sys.stdout.write("end warmup\n")
 
-	def measure(self, Ns, Np, fc, fs, Pgen):
+	def measure(self, Ns, Np, fc, fs, Pgen, fcgen=None):
+
+		if fcgen is None:
+			fcgen = fc
 
 		N = Ns*Np
 		N += self.extra
@@ -173,7 +250,7 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 			else:
 				return True
 
-		self.genc.set(fc, Pgen)
+		self.genc.set(fcgen, Pgen)
 		self.sensor.sample_run(sample_config, cb)
 		self.genc.off()
 
@@ -208,8 +285,8 @@ class SimulatedMeasurementProcess(MeasurementProcess):
 
 		return path
 
-def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
-	Np = 1000
+def do_campaign(genc, fc, fs, Ns, Pfcgenl, out_path, measurement_cls):
+	Np = 500
 
 	extra = Ns*5
 
@@ -223,14 +300,15 @@ def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	mp = measurement_cls(genc, inp, extra=extra)
 	mp.start()
 
-	for Pgen in Pgenl:
+	for Pgen, fcgen in Pfcgenl:
 		inp.put({'Ns': Ns,
 			'Np': Np,
 			'fc': fc,
 			'fs': fs,
-			'Pgen': Pgen/10. if Pgen is not None else None})
+			'Pgen': Pgen/10. if Pgen is not None else None,
+			'fcgen': fcgen})
 
-	for Pgen in Pgenl:
+	for Pgen, fcgen in Pfcgenl:
 		kwargs = mp.out.get()
 		if kwargs['Pgen'] is None:
 			suf = 'off.npy'
@@ -241,11 +319,16 @@ def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 
 			suf = '%sdbm.npy' % (m,)
 
+		if kwargs['fcgen'] is None:
+			suf2 = ''
+		else:
+			suf2 = 'fcgen%dkhz_' % (kwargs['fcgen']/1e3,)
+
 		path = '%s/%s_%s_fs%dmhz_Ns%dks_' % (
 				out_path,
 				mp.SLUG,
 				genc.SLUG, fs/1e6, Ns/1000)
-		path += suf
+		path += suf2 + suf
 
 		x = np.fromfile(kwargs['path'],
 					dtype=np.dtype(np.complex64))
@@ -262,15 +345,15 @@ def do_campaign(genc, fc, fs, Ns, Pgenl, out_path, measurement_cls):
 	mp.inp.put(None)
 	mp.join()
 
-def do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls):
+def do_sampling_campaign_generator(genc, Pfcgenl, fc, fsNs, measurement_cls):
 
 	out_path = "samples-usrp"
 
 	for fs, Ns in fsNs:
-		do_campaign(genc, fc=fc, fs=fs, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
+		do_campaign(genc, fc=fc, fs=fs, Ns=Ns, Pfcgenl=Pfcgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
-def do_usrp_sampling_campaign_generator(genc, Pgenl, measurement_cls):
+def do_usrp_sampling_campaign_generator(genc, Pfcgenl, measurement_cls):
 	fsNs = [	(1e6, 25000),
 			(2e6, 25000),
 			(10e6, 100000),
@@ -278,16 +361,29 @@ def do_usrp_sampling_campaign_generator(genc, Pgenl, measurement_cls):
 
 	fc = 864e6
 
-	do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls)
+	do_sampling_campaign_generator(genc, Pfcgenl, fc, fsNs, measurement_cls)
 
-def do_eshter_sampling_campaign_generator(genc, Pgenl, measurement_cls):
+def do_eshter_sampling_campaign_generator(genc, Pfcgenl, measurement_cls):
 	fsNs = [	(1e6, 20000),
 			(2e6, 20000),
 		]
 
 	fc = 850e6
 
-	do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, measurement_cls)
+	do_sampling_campaign_generator(genc, Pfcgenl, fc, fsNs, measurement_cls)
+
+def do_eshtercov_campaign_generator(genc, Pfcgenl, measurement_cls):
+
+	out_path = "samples-eshtercov"
+
+	do_campaign(
+		genc,
+		fc=700e6,
+		fs=2e6,
+		Ns=20,
+		Pfcgenl=Pfcgenl,
+		out_path="samples-eshtercov",
+		measurement_cls=measurement_cls)
 
 def ex_usrp_campaign_dc():
 
@@ -298,17 +394,17 @@ def ex_usrp_campaign_dc():
 
 	fc = 864e6
 
-	Pgenl = [ -600 ]
+	Pfcgenl = [ (-600, None) ]
 
 	for dc in xrange(10, 101, 2):
 
 		dcf = dc * 1e-2
 		genc = CW(dc=dcf)
 
-		do_sampling_campaign_generator(genc, Pgenl, fc, fsNs, USRPMeasurementProcess)
+		do_sampling_campaign_generator(genc, Pfcgenl, fc, fsNs, USRPMeasurementProcess)
 
 
-def do_sneismtv_campaign_generator(genc, Pgenl):
+def do_sneismtv_campaign_generator(genc, Pfcgenl):
 
 	fc = 850e6
 
@@ -318,55 +414,76 @@ def do_sneismtv_campaign_generator(genc, Pgenl):
 
 	Ns = 3676
 
-	do_campaign(genc, fc=fc, fs=0, Ns=Ns, Pgenl=Pgenl, out_path=out_path,
+	do_campaign(genc, fc=fc, fs=0, Ns=Ns, Pfcgenl=Pfcgenl, out_path=out_path,
 				measurement_cls=measurement_cls)
 
 def ex_sneismtv_campaign_dc():
 
-	Pgenl = [ -600 ]
+	Pfcgenl = [ (-600, None) ]
 
 	for dc in xrange(10, 100+1, 2):
 
 		dcf = dc * 1e-2
 		genc = CW(dc=dcf)
 
-		do_sneismtv_campaign_generator(genc, Pgenl)
+		do_sneismtv_campaign_generator(genc, Pfcgenl)
 
 def ex_sneismtv_campaign_mic():
 	genc = IEEEMicSoftSpeaker()
 	Pgenl = [None] + range(-1000, -700, 10)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	do_sneismtv_campaign_generator(genc, Pgenl)
+	do_sneismtv_campaign_generator(genc, Pfcgenl)
 
 def ex_usrp_campaign_noise():
 	genc = Noise()
 	Pgenl = [None] + range(-700, -100, 20)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	do_usrp_sampling_campaign_generator(genc, Pgenl, USRPMeasurementProcess)
+	do_usrp_sampling_campaign_generator(genc, Pfcgenl, USRPMeasurementProcess)
 
 def ex_usrp_campaign_mic():
 	genc = IEEEMicSoftSpeaker()
 	Pgenl = [None] + range(-1000, -700, 10)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	do_usrp_sampling_campaign_generator(genc, Pgenl, USRPMeasurementProcess)
+	do_usrp_sampling_campaign_generator(genc, Pfcgenl, USRPMeasurementProcess)
 
 def ex_sim_campaign_mic():
 	genc = SimulatedIEEEMicSoftSpeaker()
 	Pgenl = [None] + range(-1000, -700, 10)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	do_usrp_sampling_campaign_generator(genc, Pgenl, SimulatedMeasurementProcess)
+	do_usrp_sampling_campaign_generator(genc, Pfcgenl, SimulatedMeasurementProcess)
 
 def ex_eshter_campaign_noise():
 	genc = Noise()
 	Pgenl = [None] + range(-700, -100, 20)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	do_eshter_sampling_campaign_generator(genc, Pgenl, SNEESHTERMeasurementProcess)
+	do_eshter_sampling_campaign_generator(genc, Pfcgenl, SNEESHTERMeasurementProcess)
 
 def ex_eshter_campaign_mic():
 	genc = IEEEMicSoftSpeaker()
 	Pgenl = [None] + range(-1000, -700, 10)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	do_eshter_sampling_campaign_generator(genc, Pgenl, SNEESHTERMeasurementProcess)
+	do_eshter_sampling_campaign_generator(genc, Pfcgenl, SNEESHTERMeasurementProcess)
+
+def ex_eshtercov_campaign_unb():
+	genc = UNB()
+	Pgenl = [None] + range(-1000, -740, 10)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
+
+	do_eshtercov_campaign_generator(genc, Pfcgenl, SNEESHTERCovarianceMeasurementProcess)
+
+def ex_eshtercov_campaign_unb_freq_sweep():
+	genc = UNB()
+
+	Pfcgenl = [ (None, 700e6) ]
+	Pfcgenl += [ (-900, 700e6 + foff) for foff in np.arange(-1.00e6, .61e6, .05e6) ]
+
+	do_eshtercov_campaign_generator(genc, Pfcgenl, SNEESHTERCovarianceMeasurementProcess)
 
 
 def main():

@@ -4,6 +4,25 @@ import scipy.linalg
 
 from sensing.utils import fam
 
+class CAVMixin:
+	SLUG = 'cav'
+
+	def __call__(self, x):
+		R = self.R(x)
+		T1 = numpy.sum(numpy.abs(R))/self.L
+		T2 = numpy.abs(R[0,0])
+		return T1/T2
+
+class MACMixin:
+	SLUG = 'mac'
+
+	def __call__(self, x):
+		R = self.R(x)
+
+		T1 = numpy.max(numpy.abs(R[0,1:]))
+		T2 = numpy.abs(R[0,0])
+		return T1/T2
+
 class SNEISMTVDetector:
 	SLUG = 'ed'
 
@@ -20,6 +39,36 @@ class SNEISMTVDetector:
 
 		return numpy.sum(x_w)
 
+class SNEESHTERDetector:
+	K = 8.
+
+	def __init__(self, L=None):
+		self.L = L
+
+	def R(self, x):
+		if self.L is not None:
+			assert self.L <= len(x)
+			x = x[:self.L]
+
+		lbd = x / self.K
+		return scipy.linalg.toeplitz(lbd)
+
+class EnergyFromCovarianceMixin:
+	SLUG = 'ed'
+
+	def __call__(self, x):
+		R = self.R(x)
+		return R[0,0]
+
+class SNEESHTEREnergyDetector(SNEESHTERDetector, EnergyFromCovarianceMixin):
+	pass
+
+class SNEESHTERCAVDetector(SNEESHTERDetector, CAVMixin):
+	pass
+
+class SNEESHTERMACDetector(SNEESHTERDetector, MACMixin):
+	pass
+
 class EnergyDetector:
 	SLUG = 'ed'
 
@@ -29,7 +78,7 @@ class EnergyDetector:
 	def __call__(self, x):
 		return numpy.dot(x, x)
 
-class CovarianceDetector:
+class CovarianceDetector(object):
 	def __init__(self, L=10):
 		self.L = L
 
@@ -50,16 +99,56 @@ class CovarianceDetector:
 
 		return scipy.linalg.toeplitz(lbd)
 
-class CAVDetector(CovarianceDetector):
-	SLUG = 'cav'
+class CompCovarianceDetector(CovarianceDetector):
+	def __init__(self, L, xn):
+		super(CompCovarianceDetector, self).__init__(L)
+		self._train(xn)
+		self.SLUG = "c" + self.SLUG
+
+	def _train(self, xn):
+		R = super(CompCovarianceDetector, self).R(xn)
+		Q = scipy.linalg.sqrtm(R)
+		self.Qinv = numpy.linalg.inv(Q)
+
+	def R(self, x):
+		R = super(CompCovarianceDetector, self).R(x)
+		return numpy.dot(numpy.dot(self.Qinv, R), self.Qinv)
+
+class FSCBD:
+	SLUG = 'fscbd'
+
+	def __init__(self, par):
+		assert par[0][0] == 0
+		self.par = par
 
 	def __call__(self, x):
-		R = self.R(x)
-		T1 = numpy.sum(numpy.abs(R))/self.L
-		T2 = numpy.abs(R[0,0])
+		x0 = x - numpy.mean(x)
+		Ns = len(x0)
+
+		T1 = 0.
+		T2 = None
+
+		for i, (l, a) in enumerate(self.par):
+			if l > 0:
+				xu = x0[:-l]
+			else:
+				xu = x0
+
+			lbd = numpy.dot(xu, x0[l:])/(Ns-l)
+			T1 += a * numpy.abs(lbd)
+
+			if l == 0:
+				T2 = numpy.abs(lbd)
+
 		return T1/T2
 
-class CFNDetector(CovarianceDetector):
+class CAVDetector(CovarianceDetector, CAVMixin):
+	pass
+
+class CompCAVDetector(CompCovarianceDetector, CAVMixin):
+	pass
+
+class CFNMixin:
 	SLUG = 'cfn'
 
 	def __call__(self, x):
@@ -68,24 +157,26 @@ class CFNDetector(CovarianceDetector):
 		T2 = R[0,0]**2.
 		return T1/T2
 
-class MACDetector(CovarianceDetector):
-	SLUG = 'mac'
+class CFNDetector(CovarianceDetector, CFNMixin):
+	pass
 
-	def __call__(self, x):
-		R = self.R(x)
+class CompCFNDetector(CompCovarianceDetector, CFNMixin):
+	pass
 
-		T1 = numpy.max(numpy.abs(R[0,1:]))
-		T2 = numpy.abs(R[0,0])
-		return T1/T2
+class MACDetector(CovarianceDetector, MACMixin):
+	pass
 
-class EigenvalueDetector(CovarianceDetector):
+class CompMACDetector(CompCovarianceDetector, MACMixin):
+	pass
+
+class EigenvalueMixin(object):
 	def lbd(self, x):
 		R = self.R(x)
 
 		lbd = numpy.linalg.eigvalsh(R)
 		return numpy.abs(lbd)
 
-class MMEDetector(EigenvalueDetector):
+class MMEMixin(EigenvalueMixin):
 	SLUG = 'mme'
 
 	def __call__(self, x):
@@ -94,7 +185,13 @@ class MMEDetector(EigenvalueDetector):
 
 		return lbd[-1]/lbd[0]
 
-class EMEDetector(EigenvalueDetector):
+class MMEDetector(CovarianceDetector, MMEMixin):
+	pass
+
+class CompMMEDetector(CompCovarianceDetector, MMEMixin):
+	pass
+
+class EMEMixin(EigenvalueMixin):
 	SLUG = 'eme'
 
 	def __call__(self, x):
@@ -103,7 +200,13 @@ class EMEDetector(EigenvalueDetector):
 
 		return numpy.sum(x**2)/lbd[0]
 
-class AGMDetector(EigenvalueDetector):
+class EMEDetector(CovarianceDetector, EMEMixin):
+	pass
+
+class CompEMEDetector(CompCovarianceDetector, EMEMixin):
+	pass
+
+class AGMMixin(EigenvalueMixin):
 	SLUG = 'agm'
 
 	def __call__(self, x):
@@ -111,7 +214,13 @@ class AGMDetector(EigenvalueDetector):
 
 		return numpy.mean(lbd)/(numpy.prod(lbd)**(1./len(lbd)))
 
-class METDetector(EigenvalueDetector):
+class AGMDetector(CovarianceDetector, AGMMixin):
+	pass
+
+class CompAGMDetector(CompCovarianceDetector, AGMMixin):
+	pass
+
+class METMixin(EigenvalueMixin):
 	SLUG = 'met'
 
 	def __call__(self, x):
@@ -119,6 +228,12 @@ class METDetector(EigenvalueDetector):
 		lbd.sort()
 
 		return lbd[-1]/numpy.sum(lbd)
+
+class METDetector(CovarianceDetector, METMixin):
+	pass
+
+class CompMETDetector(CompCovarianceDetector, METMixin):
+	pass
 
 class CyclostationaryDetector:
 	def __init__(self, Np, L):

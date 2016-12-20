@@ -73,8 +73,7 @@ Contents of this repository:
    analyses of measurements.
 
 
-For details, see "A Practical View of Spectrum Sensing Methods" (to be
-published)
+For details, see "T. Solc, C. Fortuna: An Experimental Evaluation of Signal Detection Methods for Spectrum Sensing" (to be published)
 
 
 License

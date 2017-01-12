@@ -73,14 +73,14 @@ Contents of this repository:
    analyses of measurements.
 
 
-For details, see "T. Solc, C. Fortuna: An Experimental Evaluation of Signal Detection Methods for Spectrum Sensing" (to be published)
+For details, see "T. Solc, M. Mohorcic, C. Fortuna: On Methodology for an Experimental Evaluation of Signal Detection Methods in Spectrum Sensing" (to be published)
 
 
 License
 =======
 
 Spectrum sensing method experiments and implementations
-Copyright (C) 2016  Tomaz Solc
+Copyright (C) 2017  Tomaz Solc
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

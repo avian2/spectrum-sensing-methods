@@ -47,6 +47,8 @@ def get_path(genc, func, funcname, Ns, fs, Pgen, fcgen):
 
 def run_simulation(genc, det, Np, Ns, fc, fs, Pgen, fcgen):
 
+	np.random.seed()
+
 	N = Np*Ns
 
 	x = genc.get(N, fc, fs, Pgen, fcgen)

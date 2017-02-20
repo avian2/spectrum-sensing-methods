@@ -319,6 +319,34 @@ def ex_sim_campaign_mic():
 
 	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
 
+class Serial(object):
+	def __init__(self, signal, n):
+		self.signal = signal
+		self.SLUG = "%s_%04d" % (signal.SLUG, n)
+
+	def get(self, *args, **kwargs):
+		return self.signal.get(*args, **kwargs)
+
+# For checking confidence intervals of the calculated Pinmin
+def ex_sim_campaign_mic_conf_int():
+	fsNsl = [	(1e6, 25000) ]
+
+	# power sweep - for determining the Pin at which to run monte carlo
+	#Pgenl = [None] + range(-140, -100, 1)
+	Pgenl = [None, -116]
+
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
+
+	gencl = []
+	genc = AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=-100)
+	for n in range(100):
+		gencl.append(Serial(genc, n))
+
+	fc = 864e6
+	det = [	(EnergyDetector(), None) ]
+
+	return make_campaign_det_gencl(fc, det, fsNsl, gencl, Pfcgenl)
+
 def ex_calc_campaign_mic():
 
 	fsNs = [	(1e6, 25000),

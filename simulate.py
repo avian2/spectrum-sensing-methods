@@ -335,17 +335,21 @@ def ex_sim_campaign_mic_conf_int():
 
 	# power sweep - for determining the Pin at which to run monte carlo
 	#Pgenl = [None] + range(-140, -100, 1)
-	Pgenl = [None, -116]
+	Pgenl = [None, -116, -118, -119]
 
 	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
 	gencl = []
 	genc = AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=-100)
-	for n in range(100):
+	#for n in range(1):
+	for n in range(1000):
 		gencl.append(Serial(genc, n))
 
 	fc = 864e6
-	det = [	(EnergyDetector(), None) ]
+	det = [	(EnergyDetector(), None),
+		(CAVDetector(L=25), "l25"),
+		(MACDetector(L=25), "l25"),
+	]
 
 	return make_campaign_det_gencl(fc, det, fsNsl, gencl, Pfcgenl)
 

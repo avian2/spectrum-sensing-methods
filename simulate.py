@@ -372,10 +372,11 @@ def ex_calc_sneismtv_campaign_mic():
 		]
 
 	Pgenl = [None] + range(-100, -70, 1)
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
 	gencl = [ LoadMeasurement("samples-sneismtv_campaign_mic/sneismtv_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
 
-	return make_sneismtv_campaign_gencl(fsNs, gencl, Pgenl)
+	return make_sneismtv_campaign_gencl(fsNs, gencl, Pfcgenl)
 
 def ex_sim_campaign_noise():
 

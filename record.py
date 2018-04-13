@@ -286,7 +286,7 @@ class SimulatedMeasurementProcess(MeasurementProcess):
 		return path
 
 def do_campaign(genc, fc, fs, Ns, Pfcgenl, out_path, measurement_cls):
-	Np = 500
+	Np = 1000
 
 	extra = Ns*5
 

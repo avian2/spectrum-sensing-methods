@@ -184,7 +184,7 @@ class IEEE802514BPSK(ARBSMBVGeneratorControl):
 
 		x = x[Mc*nc:-Mc*nc]
 
-		np.save("bpsk.npy", x)
+		#np.save("bpsk.npy", x)
 
 		self.set_arb_waveform(fs, x)
 

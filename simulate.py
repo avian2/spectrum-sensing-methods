@@ -47,6 +47,8 @@ def get_path(genc, func, funcname, Ns, fs, Pgen, fcgen):
 
 def run_simulation(genc, det, Np, Ns, fc, fs, Pgen, fcgen):
 
+	np.random.seed()
+
 	N = Np*Ns
 
 	x = genc.get(N, fc, fs, Pgen, fcgen)
@@ -318,6 +320,38 @@ def ex_sim_campaign_mic():
 	gencl.append(AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=-100))
 
 	return make_sampling_campaign_gencl(fsNs, gencl, Pgenl)
+
+class Serial(object):
+	def __init__(self, signal, n):
+		self.signal = signal
+		self.SLUG = "%s_%04d" % (signal.SLUG, n)
+
+	def get(self, *args, **kwargs):
+		return self.signal.get(*args, **kwargs)
+
+# For checking confidence intervals of the calculated Pinmin
+def ex_sim_campaign_mic_conf_int():
+	fsNsl = [	(1e6, 25000) ]
+
+	# power sweep - for determining the Pin at which to run monte carlo
+	#Pgenl = [None] + range(-140, -100, 1)
+	Pgenl = [None, -116, -118, -119]
+
+	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
+
+	gencl = []
+	genc = AddGaussianNoise(SimulatedIEEEMicSoftSpeaker(), Pn=-100)
+	#for n in range(1):
+	for n in range(1000):
+		gencl.append(Serial(genc, n))
+
+	fc = 864e6
+	det = [	(EnergyDetector(), None),
+		(CAVDetector(L=25), "l25"),
+		(MACDetector(L=25), "l25"),
+	]
+
+	return make_campaign_det_gencl(fc, det, fsNsl, gencl, Pfcgenl)
 
 def ex_calc_campaign_mic():
 

@@ -125,6 +125,18 @@ class IEEEMicSoftSpeaker(IEEEMic):
 	fdev = 15000
 	fm = 3900
 
+class IEEEMicSilent(IEEEMic):
+	SLUG = "micsilent"
+
+	fdev = 5000
+	fm = 32000
+
+class IEEEMicLoudSpeaker(IEEEMic):
+	SLUG = "micloud"
+
+	fdev = 32600
+	fm = 13400
+
 class UNB(ARBSMBVGeneratorControl):
 	SLUG = "unb"
 

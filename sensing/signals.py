@@ -2,12 +2,7 @@ import numpy as np
 import scipy.signal
 import os
 
-class SimulatedIEEEMicSoftSpeaker:
-	SLUG = "micsoft"
-
-	fdev = 15000
-	fm = 3900
-
+class SimulatedIEEEMic:
 	def get_sig(self, N, fs, fmic):
 
 		n = np.arange(N)
@@ -32,6 +27,24 @@ class SimulatedIEEEMicSoftSpeaker:
 			x *= 10.**(Pgen/20.)
 
 		return x
+
+class SimulatedIEEEMicSoftSpeaker(SimulatedIEEEMic):
+	SLUG = "micsoft"
+
+	fdev = 15000
+	fm = 3900
+
+class SimulatedIEEEMicSilent(SimulatedIEEEMic):
+	SLUG = "micsilent"
+
+	fdev = 5000
+	fm = 32000
+
+class SimulatedIEEEMicLoudSpeaker(SimulatedIEEEMic):
+	SLUG = "micloud"
+
+	fdev = 32600
+	fm = 13400
 
 class SimulatedNoise:
 	SLUG = "noise"

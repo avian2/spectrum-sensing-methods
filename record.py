@@ -444,17 +444,18 @@ def ex_usrp_campaign_noise():
 
 def ex_usrp_campaign_mic_bpsk():
 	gencl = [
-			IEEEMicSilent(),
-			IEEEMicSoftSpeaker(),
-			IEEEMicLoudSpeaker(),
-			IEEE802514BPSK(),
+			IEEEMicSilent,
+			IEEEMicSoftSpeaker,
+			IEEEMicLoudSpeaker,
+			IEEE802514BPSK,
 	]
 
 	Pgenl = [None] + range(-1000, -700, 10)
 	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
 	for genc in gencl:
-		do_usrp_sampling_campaign_generator(genc, Pfcgenl, USRPMeasurementProcess)
+		genci = genc()
+		do_usrp_sampling_campaign_generator(genci, Pfcgenl, USRPMeasurementProcess)
 
 def ex_sim_campaign_mic():
 	genc = SimulatedIEEEMicSoftSpeaker()

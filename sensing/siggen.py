@@ -72,7 +72,6 @@ class ARBSMBVGeneratorControl(SMBVGeneratorControl):
 		self.gen.write("system:comm:gpib:lter standard\n")
 
 		self.gen.write("bb:arb:wav:sel '/var/user/data/noise.wv'\n")
-		self.gen.write("fm:state off\n")
 		self.gen.write("bb:arb:state on\n")
 
 class Noise(ARBSMBVGeneratorControl):
@@ -190,7 +189,6 @@ class IEEE802514BPSK(ARBSMBVGeneratorControl):
 
 class IEEEMic(SMBVGeneratorControl):
 	def set_waveform(self):
-		self.gen.write("bb:arb:state off\n")
 		self.gen.write("fm:dev %d Hz\n" % (self.fdev,))
 		self.gen.write("fm:source int\n")
 		self.gen.write("lfo:freq %d Hz\n" % (self.fm,))

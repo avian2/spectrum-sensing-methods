@@ -111,6 +111,82 @@ class CW(ARBSMBVGeneratorControl):
 
 		self.set_arb_waveform(fs, x)
 
+class IEEE802514BPSK(ARBSMBVGeneratorControl):
+
+	SLUG = "bpsk"
+
+	def _bpsk_pulse_r(self, t, Tc):
+		return np.sin(np.pi*t/Tc) * np.cos(np.pi*t/Tc) / (np.pi*t/Tc) / (1 - 4*t**2/Tc**2)
+
+	def _bpsk_pulse(self, t, Tc):
+		x = np.empty_like(t)
+
+		z1 = (t == 0)
+		x[z1] = 1
+
+		z2 = (t == Tc/2)|(t == -Tc/2)
+		x[z2] = 0.5
+
+		z3 = ~(z1|z2)
+		x[z3] = self._bpsk_pulse_r(t[z3], Tc)
+
+		return x
+
+	def set_waveform(self):
+		# sampling rate
+		fs = 18e6
+
+		# chip length (s)
+		Tc = 1/300e3
+
+		# chip length (samples)
+		nc = int(Tc*fs)
+
+		tc = (np.arange(0, 6*nc, dtype=float) - 3*nc)/fs
+		xc = self._bpsk_pulse(tc, Tc)
+
+		Mc = 15
+
+		sym_to_chip = [
+		    [1,1,1,1,0,1,0,1,1,0,0,1,0,0,0],
+		    [0,0,0,0,1,0,1,0,0,1,1,0,1,1,1],
+		]
+
+		assert len(sym_to_chip[0]) == Mc
+		assert len(sym_to_chip[1]) == Mc
+
+		# length of the waveform (seconds)
+		# cca. 33 ms
+		tlen = 10000*Tc
+
+		# number of chips (add two bits in front and back that we strip later)
+		Nc = int(tlen//Tc) + Mc*2
+
+		# number of bits
+		Nb = int(Nc // Mc)
+
+		# generate random bit values
+		bits = np.random.randint(0, 2, size=Nb)
+
+		# convert bits into chips
+		chips = np.empty(Nc, dtype=int)
+		for n in range(Nb):
+			chips[n*Mc:n*Mc+Mc] = sym_to_chip[bits[n]]
+
+		N = int(Nc*nc)
+
+		m = 2*chips - 1
+
+		x = np.zeros(N)
+		for n in range(3, Nc-3):
+			x[(n-3)*nc:(n+3)*nc] += xc * m[n]
+
+		x = x[Mc*nc:-Mc*nc]
+
+		np.save("bpsk.npy", x)
+
+		self.set_arb_waveform(fs, x)
+
 class IEEEMic(SMBVGeneratorControl):
 	def set_waveform(self):
 		self.gen.write("fm:dev %d Hz\n" % (self.fdev,))

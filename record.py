@@ -442,11 +442,12 @@ def ex_usrp_campaign_noise():
 
 	do_usrp_sampling_campaign_generator(genc, Pfcgenl, USRPMeasurementProcess)
 
-def ex_usrp_campaign_mic():
+def ex_usrp_campaign_mic_bpsk():
 	gencl = [
 			IEEEMicSilent(),
 			IEEEMicSoftSpeaker(),
 			IEEEMicLoudSpeaker(),
+			IEEE802514BPSK(),
 	]
 
 	Pgenl = [None] + range(-1000, -700, 10)

@@ -139,6 +139,9 @@ def make_sampling_campaign_gencl_compdet(fsNsl, gencl, Pfcgenl):
 		for c in cls:
 			det.append((c(L=L), "l%d" % (L,)))
 
+	for scfNp in [64, 128]:
+		det += [ (SCFDetector(Np=scfNp, L=scfNp/4), "Np%d" % (scfNp,)) ]
+
 	# Compensated detectors need to be instantiated with a sample of the
 	# noise. This sample varies with fs, hence we need to make a separate
 	# instance for each of the fs values we use.

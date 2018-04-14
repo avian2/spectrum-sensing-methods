@@ -60,8 +60,9 @@ def fam(x, Np, L, N=None):
 			XF2 = np.fft.fftshift(XF2)
 			XF2 /= P
 
-			i = (k+l)/2.
-			a = ((k-l)/float(Np) + 1.)*N
+			i = int( (k+l)/2. )
+			a = int( ((k-l)/float(Np) + 1.)*N )
+
 			Sx[i,a-Mp:a+Mp] = XF2[P/2-Mp:P/2+Mp]
 
 	return Sx

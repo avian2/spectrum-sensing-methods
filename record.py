@@ -428,12 +428,20 @@ def ex_sneismtv_campaign_dc():
 
 		do_sneismtv_campaign_generator(genc, Pfcgenl)
 
-def ex_sneismtv_campaign_mic():
-	genc = IEEEMicSoftSpeaker()
+def ex_sneismtv_campaign_mic_bpsk():
+	gencl = [
+			IEEEMicSilent,
+			IEEEMicSoftSpeaker,
+			IEEEMicLoudSpeaker,
+			IEEE802514BPSK,
+	]
+
 	Pgenl = [None] + range(-1000, -700, 10)
 	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	do_sneismtv_campaign_generator(genc, Pfcgenl)
+	for genc in gencl:
+		genci = genc()
+		do_sneismtv_campaign_generator(genci, Pfcgenl)
 
 def ex_usrp_campaign_noise():
 	genc = Noise()

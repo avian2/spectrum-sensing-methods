@@ -202,7 +202,7 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 
 	SLUG = "sneismtv"
 
-	WARMUP_MIN = 5
+	WARMUP_MIN = 1
 
 	def setup(self):
 		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
@@ -222,9 +222,7 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 			return time.time() < stop_time
 
 		sys.stdout.write("begin warmup\n")
-		self.genc.set(850e6, -70)
 		self.sensor.sample_run(sample_config, cb)
-		self.genc.off()
 		sys.stdout.write("end warmup\n")
 
 	def measure(self, Ns, Np, fc, fs, Pgen, fcgen=None):

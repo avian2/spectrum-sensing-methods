@@ -1,15 +1,28 @@
 from vesna.rftest import usbtmc
 import sys
 import numpy as np
+import glob
 
 class GeneratorControl: pass
 
 class SMBVGeneratorControl(GeneratorControl):
-	def __init__(self, path="/dev/usbtmc3"):
+	def __init__(self, path=None):
+
+		if path is None:
+			path = self._find_usbtmc_path()
+
 		self.gen = usbtmc(path)
 		self.gen.write("system:preset\n")
 
 		self.set_waveform()
+
+	def _find_usbtmc_path(self):
+		paths = glob.glob("/dev/usbtmc*")
+
+		if len(paths) != 1:
+			raise Exception("Can't find a usbtmc device. Please set path manually")
+		else:
+			return paths[0]
 
 	def set(self, f, P):
 

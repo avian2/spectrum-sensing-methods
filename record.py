@@ -430,9 +430,9 @@ def ex_sneismtv_campaign_dc():
 
 def ex_sneismtv_campaign_mic_bpsk():
 	gencl = [
-			IEEEMicSilent,
+			#IEEEMicSilent,
 			IEEEMicSoftSpeaker,
-			IEEEMicLoudSpeaker,
+			#IEEEMicLoudSpeaker,
 			IEEE802514BPSK,
 	]
 

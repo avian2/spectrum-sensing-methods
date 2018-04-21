@@ -467,10 +467,10 @@ def ex_usrp_campaign_noise():
 
 def ex_usrp_campaign_mic_bpsk():
 	gencl = [
-			IEEEMicSilent,
-			IEEEMicSoftSpeaker,
-			IEEEMicLoudSpeaker,
 			IEEE802514BPSK,
+			#IEEEMicSilent,
+			IEEEMicSoftSpeaker,
+			#IEEEMicLoudSpeaker,
 	]
 
 	Pgenl = [None] + range(-1000, -700, 10)

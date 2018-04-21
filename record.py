@@ -202,7 +202,7 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 
 	SLUG = "sneismtv"
 
-	WARMUP_MIN = 1
+	WARMUP_MIN = 30
 
 	def setup(self):
 		self.sensor = vesna.spectrumsensor.SpectrumSensor("/dev/ttyUSB0")
@@ -213,12 +213,19 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 		self.warmup()
 
 	def warmup(self):
-		sample_config = self.config.get_sample_config(850e6, 1000)
+		sample_config = self.config.get_sample_config(850e6, 4000)
 
 		start_time = time.time()
 		stop_time = start_time + self.WARMUP_MIN*60.
 
+		i = [0]
 		def cb(sample_config, data):
+			if (i[0] % 100) == 0:
+				print("   %.0f min of warmup left. Sample mean: %.0f" % (
+					(stop_time - time.time())/60.,
+					np.mean(data.data)))
+
+			i[0] += 1
 			return time.time() < stop_time
 
 		sys.stdout.write("begin warmup\n")
@@ -430,10 +437,10 @@ def ex_sneismtv_campaign_dc():
 
 def ex_sneismtv_campaign_mic_bpsk():
 	gencl = [
+			IEEE802514BPSK,
 			#IEEEMicSilent,
 			IEEEMicSoftSpeaker,
 			#IEEEMicLoudSpeaker,
-			IEEE802514BPSK,
 	]
 
 	Pgenl = [None] + range(-1000, -700, 10)

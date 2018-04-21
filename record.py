@@ -65,6 +65,8 @@ class USRPMeasurementProcess(MeasurementProcess):
 
 import vesna.spectrumsensor
 
+sneismtv_do_warmup = True
+
 class AsyncSpectrumSensor:
 	WARMUP_MIN = 5
 
@@ -210,7 +212,13 @@ class SNEISMTVMeasurementProcess(MeasurementProcess):
 		config_list = self.sensor.get_config_list()
 		self.config = config_list.get_config(0, 0)
 
-		self.warmup()
+		global sneismtv_do_warmup
+
+		if sneismtv_do_warmup:
+			self.warmup()
+			sneismtv_do_warmup = False
+		else:
+			print("skipping warmup")
 
 	def warmup(self):
 		sample_config = self.config.get_sample_config(850e6, 4000)

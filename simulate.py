@@ -356,7 +356,7 @@ def ex_sim_campaign_mic_conf_int():
 
 	return make_campaign_det_gencl(fc, det, fsNsl, gencl, Pfcgenl)
 
-def ex_calc_campaign_mic():
+def ex_calc_usrp_campaign_mic_bpsk():
 
 	fsNs = [	(1e6, 25000),
 			(2e6, 25000),
@@ -365,7 +365,15 @@ def ex_calc_campaign_mic():
 	Pgenl = [None] + range(-100, -70, 1)
 	Pfcgenl = [ (Pgen, None) for Pgen in Pgenl ]
 
-	gencl = [ LoadMeasurement("samples-usrp_campaign_mic/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) ]
+	gencl = [ 
+			#LoadMeasurement("samples-usrp_campaign_mic/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np) 
+			#LoadMeasurement("samples-usrp_campaign_mic_bpsk_20180414_1/usrp_micsilent_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np),
+			#LoadMeasurement("samples-usrp_campaign_mic_bpsk_20180414_1/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np),
+			#LoadMeasurement("samples-usrp_campaign_mic_bpsk_20180414_1/usrp_micloud_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np),
+			#LoadMeasurement("samples-usrp_campaign_mic_bpsk_20180414_1/usrp_bpsk_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np),
+			#LoadMeasurement("samples-usrp_campaign_mic_bpsk_20180421/usrp_micsoft_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np),
+			LoadMeasurement("samples-usrp_campaign_mic_bpsk_20180421/usrp_bpsk_fs%(fs)smhz_Ns%(Ns)sks_%(Pgen)s.npy", Np=Np),
+	]
 
 	return make_sampling_campaign_gencl_compdet(fsNs, gencl, Pfcgenl)
 

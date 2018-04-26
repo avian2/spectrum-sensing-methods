@@ -80,7 +80,7 @@ License
 =======
 
 Spectrum sensing method experiments and implementations
-Copyright (C) 2017  Tomaz Solc
+Copyright (C) 2018  Tomaz Solc
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

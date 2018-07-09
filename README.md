@@ -73,7 +73,13 @@ Contents of this repository:
    analyses of measurements.
 
 
-For details, see "T. Solc, M. Mohorcic, C. Fortuna: On Methodology for an Experimental Evaluation of Signal Detection Methods in Spectrum Sensing" (to be published)
+For details, please see "ŠOLC, Tomaž, MOHORČIČ, Mihael and FORTUNA, Carolina. A
+methodology for experimental evaluation of signal detection methods in spectrum
+sensing. PloS one, 2018, 13(6)." [accessible
+on-line](http://journals.plos.org/plosone/article?id=10.1371/journal.pone.0199550).
+
+Please cite the journal paper above if you use code or data in this repository
+in an academic publication.
 
 
 License

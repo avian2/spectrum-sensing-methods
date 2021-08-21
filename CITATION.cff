@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+preferred-citation:
+  type: article
+  message: "Please cite this paper if you use code or data in this repository in an academic publication."
+  authors:
+  - family-names: Šolc
+    given-names: Tomaž
+    orcid: https://orcid.org/0000-0001-6326-1636
+  - family-names: Mohorčič
+    given-names: Mihael
+  - family-names: Fortuna
+    given-names: Carolina
+  title: "A methodology for experimental evaluation of signal detection methods in spectrum sensing"
+  doi: 10.1371/journal.pone.0199550
+  journal: "PLOS ONE"
+  publisher: "Public Library of Science"
+  year: 2018
+  month: 6
+  volume: 13
+  issue: 6
